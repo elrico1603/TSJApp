@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TimberSmith Workforce Terminal</title>
     
-    <!-- 1. STABLE LIBRARIES (Fixed Versions) -->
+    <!-- 1. CORE LIBRARIES -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- 2. FIREBASE COMPAT (Most reliable for single-file apps) -->
+    <!-- 2. FIREBASE COMPAT SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -27,12 +27,14 @@
         video { transform: scaleX(-1); }
         .lucide { display: inline-block; vertical-align: middle; }
         
+        /* Initial loading state */
         #root:empty::before {
-            content: 'TIMBERSMITH SYSTEM BOOTING...';
+            content: 'TIMBERSMITH SYSTEM INITIALIZING...';
             position: absolute;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
             color: #ff8c00; font-weight: 900; letter-spacing: 0.3em;
             animation: pulse 1.5s infinite;
+            text-align: center; width: 100%;
         }
         @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
@@ -43,7 +45,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- FIREBASE CONFIGURATION (Using your actual project details) ---
+        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyA4J1TVcpqNBvBoq242vXWwguAAnh3G6ks",
             authDomain: "timbersmithapp.firebaseapp.com",
@@ -117,7 +119,7 @@
                             return empCol.onSnapshot((snapshot) => {
                                 setEmployees(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
                             }, (err) => {
-                                if (err.code === 'permission-denied') setError("DATABASE ERROR: Rules are blocking access.");
+                                if (err.code === 'permission-denied') setError("DATABASE ERROR: Check your Firestore Rules.");
                             });
                         } else {
                             await auth.signInAnonymously();
@@ -179,7 +181,7 @@
                     setPersonalPinInput('');
                     setTimeout(() => { setView('dashboard'); setSelectedEmployee(null); setScanComplete(false); }, 2500);
                 } catch (e) {
-                    setError("Clocking Failed: Permission Denied.");
+                    setError("Update Failed.");
                 }
             };
 
@@ -199,7 +201,7 @@
                     setEnrollForm({ name: '', surname: '', role: 'Artisan', pin: '' });
                     setView('dashboard');
                 } catch (e) {
-                    setError("Save Failed. Check Rules.");
+                    setError("Save Failed.");
                 }
             };
 
@@ -221,8 +223,8 @@
             if (error) return (
                 <div className="h-screen bg-black flex flex-col items-center justify-center p-12 text-center animate-in fade-in">
                     <Icon name="shield-alert" size={60} className="text-red-500 mb-6" />
-                    <h2 className="text-2xl font-black uppercase text-white mb-4 italic tracking-tighter">Cloud Connection Error</h2>
-                    <p className="text-gray-400 max-w-lg mb-10 italic border border-white/10 p-6 rounded-2xl bg-white/5">{error}</p>
+                    <h2 className="text-2xl font-black uppercase text-white mb-4 italic tracking-tighter">Connection Error</h2>
+                    <p className="text-gray-400 max-w-lg mb-10 italic">{error}</p>
                     <button onClick={() => window.location.reload()} className="px-10 py-4 bg-white text-black font-black uppercase rounded-full">Retry Sync</button>
                 </div>
             );
@@ -236,14 +238,14 @@
 
             return (
                 <div className="h-screen w-full bg-[#161616] flex flex-col overflow-hidden relative text-white">
-                    <header className={`p-6 border-b-2 ${!isLocked ? 'border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.1)]' : 'border-[#ff8c00]'} transition-all bg-black/40 backdrop-blur-md sticky top-0 z-50`}>
+                    <header className={`p-6 border-b-2 ${!isLocked ? 'border-blue-500' : 'border-[#ff8c00]'} transition-all bg-black/40 backdrop-blur-md sticky top-0 z-50`}>
                         <div className="flex justify-between items-center px-4">
                             <div className="flex items-center space-x-3 text-[#ff8c00]">
                                 <Icon name="hard-hat" size={28} className={!isLocked ? 'text-blue-500' : 'text-[#ff8c00]'} />
                                 <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none text-white">TimberSmith</h1>
                             </div>
                             <div className="text-right text-white">
-                                <p className="text-xl font-mono font-black italic leading-none">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                <p className="text-xl font-mono font-black leading-none">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                 <p className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-widest">{currentTime.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                             </div>
                         </div>
@@ -262,7 +264,7 @@
                                         <div key={emp.id} className="bg-[#1e1e1e] p-6 rounded-[2.5rem] flex flex-col items-center border-2 border-transparent hover:border-[#ff8c00] transition-all cursor-pointer shadow-2xl active:scale-95 group" onClick={() => { setSelectedEmployee(emp); setView('emp_home'); }}>
                                             <div className="relative mb-4">
                                                 <PhotoAvatar emp={emp} size={90} className="group-hover:scale-105 transition-transform" />
-                                                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#1e1e1e] ${emp.status === 'In' ? 'bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]' : 'bg-red-500'}`} />
+                                                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-[#1e1e1e] ${emp.status === 'In' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                                             </div>
                                             <p className="font-black text-sm uppercase italic tracking-tighter text-center leading-none group-hover:text-[#ff8c00] transition-colors">{emp.name} {emp.surname}</p>
                                             <p className="text-[8px] text-gray-600 mt-2 font-black uppercase tracking-widest">{emp.role}</p>
@@ -306,10 +308,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="mt-10 text-[#ff8c00] font-black uppercase text-xl tracking-[0.5em] animate-pulse italic text-center italic">Authenticating: {selectedEmployee.name}</h3>
+                                <h3 className="mt-10 text-[#ff8c00] font-black uppercase text-xl tracking-[0.5em] animate-pulse italic">Scanning: {selectedEmployee.name}</h3>
                                 <div className="mt-12 flex gap-10">
                                     <button onClick={handleFaceVerified} className="bg-emerald-600 text-black px-12 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest shadow-2xl active:scale-95 hover:bg-emerald-500 transition-all italic">Verify Biometrics</button>
-                                    <button onClick={() => setView('emp_home')} className="text-gray-500 font-black uppercase text-xs tracking-widest underline decoration-2 underline-offset-8 transition-colors hover:text-white">Abort</button>
+                                    <button onClick={() => setView('emp_home')} className="text-gray-600 font-black uppercase text-xs tracking-widest underline decoration-2 underline-offset-8 transition-colors hover:text-white">Abort</button>
                                 </div>
                             </div>
                         )}
@@ -335,7 +337,7 @@
                         {view === 'registration' && (
                             <div className="max-w-3xl mx-auto p-10 bg-[#1e1e1e] rounded-[4rem] border border-white/5 shadow-2xl animate-in slide-in-from-right-10">
                                 <div className="flex items-center justify-between mb-10 text-white italic">
-                                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">New Artisan Enrollment</h2>
+                                    <h2 className="text-3xl font-black uppercase italic tracking-tighter italic">New Artisan Enrollment</h2>
                                     <button onClick={() => setView('dashboard')} className="p-4 bg-white/5 rounded-full"><Icon name="x" /></button>
                                 </div>
                                 <form onSubmit={handleEnrollSubmit} className="space-y-8 text-left text-white">
@@ -352,7 +354,7 @@
 
                         {appMode === 'admin' && view === 'dashboard' && (
                              <div className="bg-[#1e1e1e] rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden animate-in slide-in-from-right-10">
-                                <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic italic">
+                                <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
                                     <h2 className="text-xl font-black uppercase italic tracking-tighter italic">Artisan Registry</h2>
                                     <button onClick={() => setView('registration')} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-all italic"><Icon name="user-plus" size={18} /><span>Enroll Carpenter</span></button>
                                 </div>
@@ -371,36 +373,7 @@
                         )}
                     </main>
 
-                    {/* Modals */}
-                    {showPinModal && (
-                        <div className="fixed inset-0 z-[900] bg-black/90 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300">
-                            <div className="bg-[#1e1e1e] p-10 rounded-[3rem] text-center border border-white/10 w-80 shadow-2xl">
-                                <Icon name="shield-alert" size={54} className="mx-auto text-blue-500 mb-6" /><p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-8 italic italic">Supervisor Access</p>
-                                <div className="flex justify-center space-x-3 mb-10">{[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all ${pinInput.length >= i ? 'bg-blue-500 shadow-[0_0_15px_#3b82f6]' : 'bg-white/10'}`} />)}</div>
-                                <div className="grid grid-cols-3 gap-4">{[1,2,3,4,5,6,7,8,9, 'C', 0, 'X'].map(n => <button key={n} className="h-16 bg-white/5 rounded-2xl font-black text-xl text-white active:bg-blue-600 transition-all" onClick={() => n === 'X' ? setShowPinModal(false) : n === 'C' ? setPinInput('') : handleAdminPin(n.toString())}>{n}</button>)}</div>
-                            </div>
-                        </div>
-                    )}
-
-                    {showSuperModal && (
-                        <div className="fixed inset-0 z-[1000] bg-black/95 flex items-center justify-center animate-in fade-in duration-300">
-                            <div className="bg-[#111] p-12 rounded-[4rem] border-2 border-red-500/20 text-center w-full max-w-md shadow-2xl text-white">
-                                <Icon name="user-x" className="mx-auto text-red-500 mb-8 shadow-[0_0_20px_#ef444433]" size={64} /><h2 className="text-2xl font-black uppercase italic mb-10 tracking-tighter leading-none italic italic text-center">Authorize Removal: <span className="text-red-500">{targetDelete?.name}</span></h2>
-                                <input type="password" placeholder="Enter Super PIN" className="w-full bg-black border-2 border-white/10 p-6 rounded-3xl text-center text-3xl font-mono tracking-widest outline-none mb-10 focus:border-red-600 transition-all text-white italic" value={superPinInput} onChange={e => setSuperPinInput(e.target.value)} autoFocus />
-                                <div className="flex gap-6"><button onClick={() => setShowSuperModal(false)} className="flex-1 py-6 bg-white/5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest active:scale-95 text-white italic">Cancel</button><button onClick={removeEmployee} className="flex-1 py-6 bg-red-600 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 hover:bg-red-500 transition-all text-white italic">Authorize</button></div>
-                            </div>
-                        </div>
-                    )}
-
-                    {view === 'success_screen' && selectedEmployee && (
-                        <div className="fixed inset-0 z-[1000] bg-[#0f0f0f] flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-500">
-                            <div className="w-72 h-72 rounded-full border-[20px] border-green-500 p-2 shadow-[0_0_120px_rgba(34,197,94,0.4)] mb-16 overflow-hidden"><PhotoAvatar emp={selectedEmployee} size="100%" className="border-0 rounded-full shadow-none" /></div>
-                            <h2 className="text-9xl font-black italic uppercase tracking-tighter text-green-500 mb-6 leading-none italic text-white italic italic">VERIFIED</h2>
-                            <p className="text-4xl font-black text-gray-500 uppercase tracking-[0.4em] mb-12 italic italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
-                            <div className="bg-[#1e1e1e] px-24 py-12 rounded-[5rem] border-b-[12px] border-green-500 shadow-2xl italic"><p className="text-7xl font-mono font-black italic text-white uppercase">{selectedEmployee.status === 'In' ? 'Shift Started' : 'Shift Completed'}</p></div>
-                        </div>
-                    )}
-
+                    {/* Navigation */}
                     <footer className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-full border border-white/10 flex items-center gap-4 shadow-2xl z-50 transition-all scale-90 md:scale-100">
                         <NavButton iconName="layout-dashboard" tooltip="Dashboard Home" active={appMode === 'employee'} onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
                         <div className="w-[1px] h-10 bg-white/10 mx-1" />
@@ -413,6 +386,17 @@
                             </div>
                         )}
                     </footer>
+
+                    {/* Modals & Screens */}
+                    {showPinModal && (
+                        <div className="fixed inset-0 z-[900] bg-black/90 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300">
+                            <div className="bg-[#1e1e1e] p-10 rounded-[3rem] text-center border border-white/10 w-80 shadow-2xl">
+                                <Icon name="shield-alert" size={54} className="mx-auto text-blue-500 mb-6" /><p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-8 italic italic">Supervisor Access</p>
+                                <div className="flex justify-center space-x-3 mb-10">{[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all ${pinInput.length >= i ? 'bg-blue-500 shadow-[0_0_15px_#3b82f6]' : 'bg-white/10'}`} />)}</div>
+                                <div className="grid grid-cols-3 gap-4">{[1,2,3,4,5,6,7,8,9, 'C', 0, 'X'].map(n => <button key={n} className="h-16 bg-white/5 rounded-2xl font-black text-xl text-white active:bg-blue-600 transition-all" onClick={() => n === 'X' ? setShowPinModal(false) : n === 'C' ? setPinInput('') : handleAdminPin(n.toString())}>{n}</button>)}</div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
