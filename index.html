@@ -10,7 +10,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- 2. FIREBASE COMPAT SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -25,7 +24,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         body { background: #000; overflow: hidden; height: 100vh; margin: 0; color: white; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
         video { transform: scaleX(-1); }
-        .lucide { display: inline-block; vertical-align: middle; }
         
         /* Initial loading state */
         #root:empty::before {
@@ -66,11 +64,41 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Safe SVG-based Icon Component (Replaces Lucide to fix DOM manipulation errors)
         const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            }, [name, size, className]);
-            return <i data-lucide={name} className={className} style={{ width: size, height: size, strokeWidth: strokeWidth }}></i>;
+            const icons = {
+                'hard-hat': <path d="M2 18V9.5a5.5 5.5 0 0 1 11 0V18a2 2 0 1 1-4 0v-2H5v2a2 2 0 1 1-4 0Zm12 0a2 2 0 1 0 4 0v-8a2 2 0 1 0-4 0v8Z"/><circle cx="10" cy="6" r="1"/><path d="M12 11h3"/>,
+                'layout-dashboard': <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>,
+                'lock': <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>,
+                'unlock': <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>,
+                'users': <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>,
+                'bar-chart-3': <path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>,
+                'scale': <path d="M16 16 20 22"/><path d="M8 16 4 22"/><path d="M3 10h18"/><path d="M12 2v20"/><path d="m7 10 2-2 3-2 3 2 2 2"/><path d="M21 10c0 4.418-4.03 8-9 8s-9-3.582-9-8"/>,
+                'shield-alert': <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/>,
+                'x': <path d="M18 6 6 18"/><path d="m6 6 12 12"/>,
+                'clock': <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>,
+                'fingerprint': <path d="M2 12a10 10 0 0 1 20 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M12 12h.01"/><path d="M11 12a1 1 0 0 1 2 0"/><path d="M5 12a7 7 0 0 1 14 0"/><path d="M12 17v3"/><path d="M8 19v1"/><path d="M16 19v1"/>,
+                'key-round': <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4c.9.4 2 .4 2.9-.1l4.7-4.7c1.1-1.1 1.1-2.9 0-4-1.1-1.1-2.9-1.1-4 0l-4.7 4.7c-.5.9-.5 2-.1 2.9L10 14v2H7v2H2Z"/><circle cx="15.5" cy="8.5" r=".5" fill="currentColor"/>,
+                'user-plus': <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="16" x2="22" y1="11" y2="11"/>,
+                'trash-2': <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>,
+                'user-x': <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/>,
+                'activity': <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            };
+            return (
+                <svg 
+                    viewBox="0 0 24 24" 
+                    width={size} 
+                    height={size} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth={strokeWidth} 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                >
+                    {icons[name] || <circle cx="12" cy="12" r="10" />}
+                </svg>
+            );
         };
 
         const NavButton = ({ iconName, tooltip, active, onClick, disabled = false, colorClass = "" }) => (
@@ -111,12 +139,14 @@
             const videoRef = useRef(null);
 
             useEffect(() => {
+                let unsubscribeSnapshot = null;
+
                 const unsubscribeAuth = auth.onAuthStateChanged(async (u) => {
                     try {
                         if (u) {
                             setUser(u);
                             const empCol = db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees');
-                            return empCol.onSnapshot((snapshot) => {
+                            unsubscribeSnapshot = empCol.onSnapshot((snapshot) => {
                                 setEmployees(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
                             }, (err) => {
                                 if (err.code === 'permission-denied') setError("DATABASE ERROR: Check your Firestore Rules.");
@@ -130,7 +160,11 @@
                 });
 
                 const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-                return () => { unsubscribeAuth(); clearInterval(timer); };
+                return () => { 
+                    unsubscribeAuth(); 
+                    if (unsubscribeSnapshot) unsubscribeSnapshot();
+                    clearInterval(timer); 
+                };
             }, []);
 
             useEffect(() => {
@@ -364,7 +398,7 @@
                                             <div className="flex items-start space-x-6 text-left">
                                                 <PhotoAvatar emp={emp} size={90} className="border-2 border-black" />
                                                 <div className="flex-1 text-left"><h3 className="text-xl font-black italic leading-none uppercase italic">{emp.name}</h3><p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-2 italic italic">{emp.role}</p></div>
-                                                <button onClick={() => { setTargetDelete(emp); setShowSuperModal(true); }} className="text-red-500/20 hover:text-red-500 transition-all active:scale-90"><Icon name="trash-2" size={20} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setTargetDelete(emp); setShowSuperModal(true); }} className="text-red-500/20 hover:text-red-500 transition-all active:scale-90"><Icon name="trash-2" size={20} /></button>
                                             </div>
                                         </div>
                                     ))}
