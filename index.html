@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TimberSmith Workforce Terminal</title>
     
-    <!-- Dependencies -->
+    <!-- 1. STABLE LIBRARIES (Fixed Versions) -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Firebase SDKs (Compat Version for maximum stability in Single-File apps) -->
+    <!-- 2. FIREBASE COMPAT (Most reliable for single-file apps) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -27,16 +27,11 @@
         video { transform: scaleX(-1); }
         .lucide { display: inline-block; vertical-align: middle; }
         
-        /* Initial loading state before React mounts */
         #root:empty::before {
-            content: 'SYSTEM INITIALIZING...';
+            content: 'TIMBERSMITH INITIALIZING...';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff8c00;
-            font-weight: 900;
-            letter-spacing: 0.2em;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff8c00; font-weight: 900; letter-spacing: 0.3em;
             animation: pulse 1.5s infinite;
         }
         @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
@@ -48,7 +43,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- FIREBASE CONFIGURATION (Using your provided project details) ---
+        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyA4J1TVcpqNBvBoq242vXWwguAAnh3G6ks",
             authDomain: "timbersmithapp.firebaseapp.com",
@@ -60,15 +55,16 @@
 
         const ADMIN_PIN = "2026"; 
         const SUPER_USER_PIN = "Melkmy74";
-        const APP_ID_PATH = 'timbersmith-terminal-v1';
+        const APP_ID = 'timbersmith-terminal-v1';
 
-        // Initialize Firebase
+        // Initialize Firebase Global instances
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Icon Component
         const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
             useEffect(() => {
                 if (window.lucide) window.lucide.createIcons();
@@ -76,6 +72,7 @@
             return <i data-lucide={name} className={className} style={{ width: size, height: size, strokeWidth: strokeWidth }}></i>;
         };
 
+        // Navigation Button with Hover Tooltip
         const NavButton = ({ iconName, tooltip, active, onClick, disabled = false, colorClass = "" }) => (
             <div className="relative group flex items-center">
                 <div className="absolute bottom-full mb-5 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/95 backdrop-blur-md border border-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap z-[100] shadow-2xl">
@@ -110,30 +107,25 @@
             const [personalPinInput, setPersonalPinInput] = useState('');
             const [personalPinError, setPersonalPinError] = useState(false);
             const [enrollForm, setEnrollForm] = useState({ name: '', surname: '', role: 'Artisan', pin: '' });
-            const [isSaving, setIsSaving] = useState(false);
 
             const videoRef = useRef(null);
 
-            // Authentication and Data Sync
             useEffect(() => {
                 const unsubscribeAuth = auth.onAuthStateChanged(async (u) => {
                     if (u) {
                         setUser(u);
                         // Setup Real-time listener for employees
-                        const empCol = db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees');
+                        const empCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('employees');
                         return empCol.onSnapshot((snapshot) => {
                             setEmployees(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
                         }, (err) => {
-                            console.error("Firestore error", err);
-                            if (err.code === 'permission-denied') {
-                                setError("DATABASE ERROR: Permission Denied. Check your Firestore Rules.");
-                            }
+                            if (err.code === 'permission-denied') setError("DATABASE ERROR: Rules are blocking access.");
                         });
                     } else {
                         try {
                             await auth.signInAnonymously();
                         } catch (e) {
-                            setError(e.message === "auth/admin-restricted-operation" ? "ANONYMOUS AUTH IS DISABLED: Enable it in Firebase Console." : e.message);
+                            setError(e.message);
                         }
                     }
                 });
@@ -142,12 +134,11 @@
                 return () => { unsubscribeAuth(); clearInterval(timer); };
             }, []);
 
-            // Camera handling
             useEffect(() => {
                 if (view === 'scanning' && videoRef.current) {
                     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
                         .then(s => { if(videoRef.current) videoRef.current.srcObject = s; })
-                        .catch(err => console.warn("Camera blocked."));
+                        .catch(err => console.warn("Camera access denied."));
                 }
             }, [view]);
 
@@ -180,9 +171,8 @@
             };
 
             const processClockEvent = async (emp) => {
-                setIsSaving(true);
                 const newStatus = emp.status === 'In' ? 'Out' : 'In';
-                const empRef = db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id);
+                const empRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('employees').doc(emp.id);
                 try {
                     await empRef.update({ 
                         status: newStatus, 
@@ -190,39 +180,35 @@
                     });
                     setView('success_screen');
                     setPersonalPinInput('');
-                    setTimeout(() => { setView('dashboard'); setSelectedEmployee(null); setScanComplete(false); setIsSaving(false); }, 2500);
+                    setTimeout(() => { setView('dashboard'); setSelectedEmployee(null); setScanComplete(false); }, 2500);
                 } catch (e) {
-                    setError("Failed to update status.");
-                    setIsSaving(false);
+                    setError("Clocking Failed: Check Permissions.");
                 }
             };
 
             const handleEnrollSubmit = async (e) => {
                 e.preventDefault();
-                setIsSaving(true);
                 try {
-                    const empCol = db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees');
+                    const empCol = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('employees');
                     await empCol.add({
                         name: enrollForm.name,
                         surname: enrollForm.surname,
                         role: enrollForm.role,
                         status: 'Out',
-                        todayHours: 0, weeklyHours: 0, yesterdayHours: 0, monthlyHours: 0,
+                        todayHours: 0, weeklyHours: 0, monthlyHours: 0,
                         personalCode: enrollForm.pin,
                         createdAt: new Date().toISOString()
                     });
                     setEnrollForm({ name: '', surname: '', role: 'Artisan', pin: '' });
                     setView('dashboard');
                 } catch (e) {
-                    setError("Failed to enroll artisan. Check permissions.");
-                } finally {
-                    setIsSaving(false);
+                    setError("Save Failed. Check Firestore Rules.");
                 }
             };
 
             const removeEmployee = async () => {
                 if (superPinInput === SUPER_USER_PIN) {
-                    const empRef = db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(targetDelete.id);
+                    const empRef = db.collection('artifacts').doc(APP_ID).collection('public').doc('data').collection('employees').doc(targetDelete.id);
                     await empRef.delete();
                     setShowSuperModal(false); setSuperPinInput('');
                 }
@@ -236,27 +222,19 @@
             );
 
             if (error) return (
-                <div className="h-screen bg-black flex flex-col items-center justify-center p-12 text-center animate-in fade-in">
+                <div className="h-screen bg-black flex flex-col items-center justify-center p-12 text-center">
                     <Icon name="shield-alert" size={60} className="text-red-500 mb-6" />
-                    <h2 className="text-2xl font-black uppercase text-white mb-4 italic">Cloud Connection Alert</h2>
-                    <div className="bg-[#111] border border-white/10 p-6 rounded-[2rem] max-w-lg mb-10 shadow-2xl">
-                        <p className="text-gray-400 font-medium leading-relaxed italic text-sm">{error}</p>
-                    </div>
-                    <button onClick={() => window.location.reload()} className="px-12 py-4 bg-white text-black font-black uppercase rounded-full hover:scale-105 active:scale-95 transition-all">Retry Terminal Sync</button>
+                    <h2 className="text-2xl font-black uppercase text-white mb-4 italic tracking-tighter">Connection Error</h2>
+                    <p className="text-gray-400 max-w-lg mb-10 italic">{error}</p>
+                    <button onClick={() => window.location.reload()} className="px-10 py-4 bg-white text-black font-black uppercase rounded-full tracking-widest">Retry Sync</button>
                 </div>
             );
 
-            if (!user) return (
-                <div className="h-screen bg-black flex flex-col items-center justify-center">
-                    <Icon name="hard-hat" size={80} className="text-[#ff8c00] animate-bounce mb-8" />
-                    <div className="text-[#ff8c00] font-black italic tracking-[0.3em] animate-pulse uppercase text-xl">Cloud Handshake...</div>
-                    <p className="text-[10px] text-gray-700 mt-6 uppercase font-black tracking-widest italic">Authenticating Timbersmith Terminal v1</p>
-                </div>
-            );
+            if (!user) return <div className="h-screen bg-black flex flex-col items-center justify-center text-[#ff8c00] font-black italic animate-pulse text-xl">SYNCING CLOUD...</div>;
 
             return (
                 <div className="h-screen w-full bg-[#161616] flex flex-col overflow-hidden relative text-white">
-                    <header className={`p-6 border-b-2 ${!isLocked ? 'border-blue-500' : 'border-[#ff8c00]'} transition-all bg-black/40 backdrop-blur-md sticky top-0 z-50`}>
+                    <header className={`p-6 border-b-2 ${!isLocked ? 'border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.1)]' : 'border-[#ff8c00]'} transition-all bg-black/40 backdrop-blur-md sticky top-0 z-50`}>
                         <div className="flex justify-between items-center px-4">
                             <div className="flex items-center space-x-3 text-[#ff8c00]">
                                 <Icon name="hard-hat" size={28} className={!isLocked ? 'text-blue-500' : 'text-[#ff8c00]'} />
@@ -270,14 +248,13 @@
                     </header>
 
                     <main className="flex-1 overflow-y-auto p-6 custom-scrollbar pb-32">
-                        {/* 1. DashboardSelection */}
+                        {/* 1. Dashboard Selection */}
                         {appMode === 'employee' && view === 'dashboard' && (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 animate-in fade-in duration-500">
                                 {employees.length === 0 ? (
                                     <div className="col-span-full py-20 flex flex-col items-center justify-center opacity-20 italic">
                                         <Icon name="users" size={64} />
-                                        <p className="mt-4 font-black uppercase tracking-widest italic">Artisan Registry Empty</p>
-                                        <p className="text-[8px] mt-2 uppercase font-black">Admin Access Required to Enroll Staff</p>
+                                        <p className="mt-4 font-black uppercase tracking-widest">No Artisans Found in Cloud</p>
                                     </div>
                                 ) : (
                                     employees.map(emp => (
@@ -294,7 +271,7 @@
                             </div>
                         )}
 
-                        {/* Profile Actions */}
+                        {/* Profile Home */}
                         {view === 'emp_home' && selectedEmployee && (
                             <div className="max-w-4xl mx-auto p-10 bg-[#1e1e1e] rounded-[4rem] border border-white/5 shadow-2xl animate-in slide-in-from-bottom-10">
                                 <div className="flex items-center gap-10 mb-14">
@@ -318,7 +295,7 @@
                             </div>
                         )}
 
-                        {/* Scan View */}
+                        {/* Dual Login Step 1: Scan */}
                         {view === 'scanning' && selectedEmployee && (
                             <div className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-12 animate-in zoom-in">
                                 <div className="w-full max-w-xl aspect-square relative rounded-[4rem] overflow-hidden border-[12px] border-[#222] shadow-2xl">
@@ -330,15 +307,15 @@
                                         </div>
                                     </div>
                                 </div>
-                                <h3 className="mt-10 text-[#ff8c00] font-black uppercase text-xl tracking-[0.5em] animate-pulse italic">Scanning: {selectedEmployee.name}</h3>
+                                <h3 className="mt-10 text-[#ff8c00] font-black uppercase text-xl tracking-[0.5em] animate-pulse italic">Scanning Identity: {selectedEmployee.name}</h3>
                                 <div className="mt-12 flex gap-10">
-                                    <button onClick={handleFaceVerified} className="bg-emerald-600 text-black px-12 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest shadow-2xl active:scale-95 hover:bg-emerald-500 transition-all">Verify Identity</button>
-                                    <button onClick={() => setView('emp_home')} className="text-gray-500 font-black uppercase text-xs tracking-widest underline decoration-2 underline-offset-8 transition-colors hover:text-white">Abort</button>
+                                    <button onClick={handleFaceVerified} className="bg-emerald-600 text-black px-12 py-5 rounded-[2rem] font-black uppercase text-sm tracking-widest shadow-2xl active:scale-95 hover:bg-emerald-500 transition-all">Verify Biometrics</button>
+                                    <button onClick={() => setView('emp_home')} className="text-gray-500 font-black uppercase text-xs tracking-widest underline decoration-2 underline-offset-8">Abort</button>
                                 </div>
                             </div>
                         )}
 
-                        {/* PIN Entry */}
+                        {/* Dual Login Step 2: PIN */}
                         {view === 'personal_pin_entry' && selectedEmployee && (
                             <div className="fixed inset-0 z-[300] bg-[#0f0f0f] flex flex-col items-center justify-center animate-in slide-in-from-bottom-10 duration-500">
                                 <div className="bg-[#1e1e1e] p-10 rounded-[4rem] border border-white/10 text-center w-full max-w-sm shadow-2xl">
@@ -353,16 +330,16 @@
                                             <button key={n} className="h-16 bg-white/5 rounded-2xl font-black text-xl text-white active:bg-blue-600 transition-all" onClick={() => n === 'X' ? setView('emp_home') : n === 'C' ? setPersonalPinInput('') : handlePersonalPinDigit(n.toString())}>{n}</button>
                                         ))}
                                     </div>
-                                    {personalPinError && <p className="mt-6 text-red-500 font-black uppercase text-[10px] animate-pulse italic">Invalid Security Key</p>}
+                                    {personalPinError && <p className="mt-6 text-red-500 font-black uppercase text-[10px] animate-pulse italic">Access Refused: Invalid PIN</p>}
                                 </div>
                             </div>
                         )}
 
-                        {/* Enrollment */}
+                        {/* Registration View */}
                         {view === 'registration' && (
-                            <div className="max-w-3xl mx-auto p-10 bg-[#1e1e1e] rounded-[4rem] border border-white/5 shadow-2xl animate-in slide-in-from-right-10 duration-500">
+                            <div className="max-w-3xl mx-auto p-10 bg-[#1e1e1e] rounded-[4rem] border border-white/5 shadow-2xl animate-in slide-in-from-right-10">
                                 <div className="flex items-center justify-between mb-10 text-white italic">
-                                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">New Artisan Enrollment</h2>
+                                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">Artisan Enrollment</h2>
                                     <button onClick={() => setView('dashboard')} className="p-4 bg-white/5 rounded-full"><Icon name="x" /></button>
                                 </div>
                                 <form onSubmit={handleEnrollSubmit} className="space-y-8 text-left text-white">
@@ -376,24 +353,22 @@
                                             <input required className="w-full bg-black border border-white/10 rounded-3xl p-6 outline-none focus:border-blue-500 font-bold transition-all" value={enrollForm.surname} onChange={e => setEnrollForm({...enrollForm, surname: e.target.value})} />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-gray-500 ml-4 italic tracking-widest">Role</label>
+                                            <label className="text-[10px] font-black uppercase text-gray-500 ml-4 italic tracking-widest">Workshop Role</label>
                                             <select className="w-full bg-black border border-white/10 rounded-3xl p-6 outline-none focus:border-blue-500 font-bold appearance-none px-6 transition-all" value={enrollForm.role} onChange={e => setEnrollForm({...enrollForm, role: e.target.value})}>
                                                 <option>Artisan</option><option>Master Carpenter</option><option>Joiner</option><option>Apprentice</option>
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-orange-500 ml-4 italic tracking-widest">Set 4-Digit PIN</label>
+                                            <label className="text-[10px] font-black uppercase text-orange-500 ml-4 italic tracking-widest">Personal Security PIN</label>
                                             <input required maxLength="4" placeholder="4 Digits" className="w-full bg-black border border-orange-500/20 p-6 rounded-3xl outline-none focus:border-orange-500 text-orange-500 font-black tracking-widest text-center transition-all" value={enrollForm.pin} onChange={e => setEnrollForm({...enrollForm, pin: e.target.value})} />
                                         </div>
                                     </div>
-                                    <button type="submit" disabled={isSaving} className="w-full py-8 bg-blue-600 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm shadow-xl active:scale-95 transition-all text-white italic disabled:opacity-30">
-                                        {isSaving ? 'Saving to Cloud...' : 'Commit to Cloud Registry'}
-                                    </button>
+                                    <button type="submit" className="w-full py-8 bg-blue-600 rounded-[3rem] font-black uppercase tracking-[0.3em] text-sm shadow-xl active:scale-95 transition-all text-white italic">Save to Cloud Registry</button>
                                 </form>
                             </div>
                         )}
 
-                        {/* Admin List */}
+                        {/* Admin View */}
                         {appMode === 'admin' && view === 'dashboard' && (
                              <div className="bg-[#1e1e1e] rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden animate-in slide-in-from-right-10">
                                 <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
@@ -404,10 +379,10 @@
                                 </div>
                                 <div className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
                                     {employees.map(emp => (
-                                        <div key={emp.id} className="bg-[#161616] p-8 rounded-[2.5rem] border border-white/5 flex flex-col group transition-all hover:bg-black/40">
-                                            <div className="flex items-start space-x-6">
+                                        <div key={emp.id} className="bg-[#161616] p-8 rounded-[2.5rem] border border-white/5 flex flex-col group transition-all hover:bg-black/40 shadow-inner">
+                                            <div className="flex items-start space-x-6 text-left">
                                                 <PhotoAvatar emp={emp} size={90} className="border-2 border-black" />
-                                                <div className="flex-1 text-left">
+                                                <div className="flex-1">
                                                     <h3 className="text-xl font-black italic leading-none uppercase">{emp.name}</h3>
                                                     <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-2 italic">{emp.role}</p>
                                                 </div>
@@ -420,12 +395,12 @@
                         )}
                     </main>
 
-                    {/* Supervisor PIN Modals */}
+                    {/* Modals */}
                     {showPinModal && (
                         <div className="fixed inset-0 z-[900] bg-black/90 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-300">
                             <div className="bg-[#1e1e1e] p-10 rounded-[3rem] text-center border border-white/10 w-80 shadow-2xl">
                                 <Icon name="shield-alert" size={54} className="mx-auto text-blue-500 mb-6" />
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-8 italic">Management Access</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-8 italic">Management Access Required</p>
                                 <div className="flex justify-center space-x-3 mb-10">
                                     {[1,2,3,4].map(i => <div key={i} className={`w-3 h-3 rounded-full transition-all ${pinInput.length >= i ? 'bg-blue-500 shadow-[0_0_15px_#3b82f6]' : 'bg-white/10'}`} />)}
                                 </div>
@@ -438,13 +413,12 @@
                         </div>
                     )}
 
-                    {/* Delete Modal */}
                     {showSuperModal && (
                         <div className="fixed inset-0 z-[1000] bg-black/95 flex items-center justify-center animate-in fade-in duration-300">
                             <div className="bg-[#111] p-12 rounded-[4rem] border-2 border-red-500/20 text-center w-full max-w-md shadow-2xl text-white">
                                 <Icon name="user-x" className="mx-auto text-red-500 mb-8 shadow-[0_0_20px_#ef444433]" size={64} />
-                                <h2 className="text-2xl font-black uppercase italic mb-10 tracking-tighter leading-none italic italic text-center">Terminate Archive:<br/><span className="text-red-500">{targetDelete?.name}</span></h2>
-                                <input type="password" placeholder="Super PIN" className="w-full bg-black border-2 border-white/10 p-6 rounded-3xl text-center text-3xl font-mono tracking-widest outline-none mb-10 focus:border-red-600 transition-all text-white" value={superPinInput} onChange={e => setSuperPinInput(e.target.value)} autoFocus />
+                                <h2 className="text-2xl font-black uppercase italic mb-10 tracking-tighter leading-none italic italic text-center">Delete Artisan Archive:<br/><span className="text-red-500">{targetDelete?.name}</span></h2>
+                                <input type="password" placeholder="Enter Super PIN" className="w-full bg-black border-2 border-white/10 p-6 rounded-3xl text-center text-3xl font-mono tracking-widest outline-none mb-10 focus:border-red-600 transition-all text-white" value={superPinInput} onChange={e => setSuperPinInput(e.target.value)} autoFocus />
                                 <div className="flex gap-6">
                                     <button onClick={() => setShowSuperModal(false)} className="flex-1 py-6 bg-white/5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest active:scale-95 text-white italic">Cancel</button>
                                     <button onClick={removeEmployee} className="flex-1 py-6 bg-red-600 rounded-[2rem] font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 hover:bg-red-500 transition-all text-white italic">Authorize</button>
@@ -453,10 +427,10 @@
                         </div>
                     )}
 
-                    {/* Success Message Overlay */}
+                    {/* Success Screen Overlay */}
                     {view === 'success_screen' && selectedEmployee && (
                         <div className="fixed inset-0 z-[1000] bg-[#0f0f0f] flex flex-col items-center justify-center p-12 text-center animate-in fade-in duration-500">
-                            <div className="w-72 h-72 rounded-full border-[20px] border-green-500 p-2 shadow-[0_0_120px_rgba(34,197,94,0.4)] mb-16 overflow-hidden"><PhotoAvatar emp={selectedEmployee} size="100%" className="border-0 rounded-full" /></div>
+                            <div className="w-72 h-72 rounded-full border-[20px] border-green-500 p-2 shadow-[0_0_120px_rgba(34,197,94,0.4)] mb-16 overflow-hidden"><PhotoAvatar emp={selectedEmployee} size="100%" className="border-0 rounded-full shadow-none" /></div>
                             <h2 className="text-9xl font-black italic uppercase tracking-tighter text-green-500 mb-6 leading-none italic text-white italic">VERIFIED</h2>
                             <p className="text-4xl font-black text-gray-500 uppercase tracking-[0.4em] mb-12 italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
                             <div className="bg-[#1e1e1e] px-24 py-12 rounded-[5rem] border-b-[12px] border-green-500 shadow-2xl animate-in slide-in-from-bottom-10">
@@ -465,11 +439,11 @@
                         </div>
                     )}
 
-                    {/* Navigation Bar */}
-                    <footer className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-full border border-white/10 flex items-center gap-4 shadow-2xl z-50 transition-all">
+                    {/* Taskbar Navigation */}
+                    <footer className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-full border border-white/10 flex items-center gap-4 shadow-2xl z-50 transition-all scale-90 md:scale-100">
                         <NavButton iconName="layout-dashboard" tooltip="Dashboard Home" active={appMode === 'employee'} onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
                         <div className="w-[1px] h-10 bg-white/10 mx-1" />
-                        <NavButton iconName={isLocked ? "lock" : "unlock"} tooltip="Unlock Admin Terminal" active={!isLocked} colorClass="text-blue-500 bg-blue-500/10" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
+                        <NavButton iconName={isLocked ? "lock" : "unlock"} tooltip="Unlock Management Console" active={!isLocked} colorClass="text-blue-500 bg-blue-500/10 shadow-[0_0_20px_#3b82f622]" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
                         {!isLocked && (
                             <div className="flex gap-4 border-l border-white/10 pl-4 animate-in slide-in-from-left-5">
                                 <NavButton iconName="users" tooltip="Staff Registry" active={appMode === 'admin'} colorClass="bg-blue-600 text-white shadow-xl" onClick={() => { setAppMode('admin'); setView('dashboard'); }} />
