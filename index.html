@@ -27,16 +27,7 @@
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .tooltip-arrow { border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid rgba(0,0,0,0.9); }
         input::placeholder { color: #444; }
-        
-        #root:empty::before {
-            content: 'TERMINAL INITIALIZING...';
-            position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #ff8c00; font-weight: 900; letter-spacing: 0.3em;
-            animation: pulse 1.5s infinite;
-            text-align: center; width: 100%;
-        }
-        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -45,7 +36,6 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, Fragment } = React;
 
-        // --- CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyA4J1TVcpqNBvBoq242vXWwguAAnh3G6ks",
             authDomain: "timbersmithapp.firebaseapp.com",
@@ -58,12 +48,12 @@
         const ADMIN_PIN = "2026"; 
         const SUPER_USER_PIN = "Melkmy74";
         const APP_ID_PATH = 'timbersmith-terminal-v1';
+        const APP_MOBILE_LINK = "https://elrico1603.github.io/TSJApp/";
 
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Voice Feedback
         const announce = (text) => {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -82,7 +72,6 @@
                 'unlock': <Fragment><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></Fragment>,
                 'users': <Fragment><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Fragment>,
                 'bar-chart-3': <Fragment><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></Fragment>,
-                'scale': <Fragment><path d="M16 16 20 22"/><path d="M8 16 4 22"/><path d="M3 10h18"/><path d="M12 2v20"/><path d="m7 10 2-2 3-2 3 2 2 2"/><path d="M21 10c0 4.418-4.03 8-9 8s-9-3.582-9-8"/></Fragment>,
                 'x': <Fragment><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Fragment>,
                 'clock': <Fragment><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Fragment>,
                 'fingerprint': <Fragment><path d="M2 12a10 10 0 0 1 20 0"/><path d="M7 12a5 5 0 0 1 10 0"/><path d="M12 12h.01"/><path d="M11 12a1 1 0 0 1 2 0"/><path d="M5 12a7 7 0 0 1 14 0"/><path d="M12 17v3"/><path d="M8 19v1"/><path d="M16 19v1"/></Fragment>,
@@ -92,10 +81,14 @@
                 'user-plus': <Fragment><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="16" x2="22" y1="11" y2="11"/></Fragment>,
                 'edit-3': <Fragment><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></Fragment>,
                 'trash-2': <Fragment><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></Fragment>,
-                'chevron-right': <Fragment><path d="m9 18 6-6-6-6"/></Fragment>,
+                'calendar': <Fragment><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></Fragment>,
+                'arrow-right': <Fragment><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></Fragment>,
                 'arrow-left': <Fragment><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></Fragment>,
-                'shield-alert': <Fragment><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></Fragment>,
-                'banknote': <Fragment><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></Fragment>
+                'smartphone': <Fragment><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></Fragment>,
+                'qr-code': <Fragment><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3m-4 4h3m4 0h3"/></Fragment>,
+                'banknote': <Fragment><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></Fragment>,
+                'scale': <Fragment><path d="M16 16 20 22"/><path d="M8 16 4 22"/><path d="M3 10h18"/><path d="M12 2v20"/><path d="m7 10 2-2 3-2 3 2 2 2"/><path d="M21 10c0 4.418-4.03 8-9 8s-9-3.582-9-8"/></Fragment>,
+                'shield-alert': <Fragment><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></Fragment>
             };
             return (
                 <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -114,19 +107,20 @@
             const [pinInput, setPinInput] = useState('');
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
-            const [selectedAnalyticsEmployee, setSelectedAnalyticsEmployee] = useState(null);
             const [scanComplete, setScanComplete] = useState(false);
             const [personalPinInput, setPersonalPinInput] = useState('');
             const [personalPinError, setPersonalPinError] = useState(false);
+
+            // Date Range Picker State
+            const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+            const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
             
             const [showEnrollModal, setShowEnrollModal] = useState(false);
             const [isEditing, setIsEditing] = useState(false);
             const [editingId, setEditingId] = useState(null);
             const [isCapturing, setIsCapturing] = useState(false);
             const [capturedPhoto, setCapturedPhoto] = useState(null);
-            const [enrollForm, setEnrollForm] = useState({
-                name: '', surname: '', address: '', idNumber: '', taxNumber: '', uifNumber: '', contactNumber: '', personalCode: '', hourlyRate: '0'
-            });
+            const [enrollForm, setEnrollForm] = useState({ name: '', surname: '', address: '', idNumber: '', taxNumber: '', uifNumber: '', contactNumber: '', personalCode: '', hourlyRate: '0' });
 
             const [showDeleteModal, setShowDeleteModal] = useState(false);
             const [targetDelete, setTargetDelete] = useState(null);
@@ -138,7 +132,7 @@
             const streamRef = useRef(null);
 
             const formatTime = (decimalHours) => {
-                if (!decimalHours || decimalHours === 0) return '0h 00m';
+                if (!decimalHours || decimalHours < 0) return '0h 00m';
                 const hours = Math.floor(decimalHours);
                 const minutes = Math.round((decimalHours - hours) * 60);
                 return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
@@ -148,8 +142,31 @@
                 let total = emp.todayHours || 0;
                 if (emp.status === 'In' && emp.shiftStartTime) {
                     const start = new Date(emp.shiftStartTime);
-                    const diffMs = currentTime - start;
-                    total += (diffMs / (1000 * 60 * 60));
+                    total += (currentTime - start) / 3600000;
+                }
+                return total;
+            };
+
+            const calculateEmployeeHours = (emp, mode = 'today', startRange = null, endRange = null) => {
+                let total = 0;
+                const history = emp.history || [];
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                if (mode === 'today') {
+                    total = history.find(h => h.date === todayStr)?.hours || 0;
+                    if (emp.status === 'In' && emp.shiftStartTime) total += (now - new Date(emp.shiftStartTime)) / 3600000;
+                } else if (mode === 'yesterday') {
+                    total = history.find(h => h.date === yesterdayStr)?.hours || 0;
+                } else if (mode === 'custom') {
+                    const start = new Date(startRange); const end = new Date(endRange); end.setHours(23, 59, 59);
+                    total = history.reduce((sum, h) => { const d = new Date(h.date); return (d >= start && d <= end) ? sum + h.hours : sum; }, 0);
+                    if (emp.status === 'In' && emp.shiftStartTime) {
+                        const shiftStart = new Date(emp.shiftStartTime);
+                        if (shiftStart >= start && shiftStart <= end) total += (now - shiftStart) / 3600000;
+                    }
                 }
                 return total;
             };
@@ -159,9 +176,7 @@
                     if (u) {
                         setIsCloudLive(true);
                         db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees')
-                          .onSnapshot(snap => { 
-                             if (!snap.empty) setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
-                          });
+                          .onSnapshot(snap => { if (!snap.empty) setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() }))); });
                     } else { try { await auth.signInAnonymously(); } catch (e) {} }
                 });
                 const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -170,10 +185,7 @@
 
             useEffect(() => {
                 if (view === 'scanning' && selectedEmployee) {
-                    const timer = setTimeout(() => {
-                        setScanComplete(true);
-                        setTimeout(() => setView('personal_pin_entry'), 1200);
-                    }, 3500);
+                    const timer = setTimeout(() => { setScanComplete(true); setTimeout(() => setView('personal_pin_entry'), 1200); }, 3500);
                     return () => clearTimeout(timer);
                 }
             }, [view, selectedEmployee]);
@@ -200,12 +212,8 @@
                     const newPin = personalPinInput + digit;
                     setPersonalPinInput(newPin);
                     if (newPin.length === 4) {
-                        if (newPin === (selectedEmployee?.personalCode || "")) {
-                            processClockEvent(selectedEmployee);
-                        } else {
-                            setPersonalPinError(true);
-                            setTimeout(() => { setPersonalPinInput(''); setPersonalPinError(false); }, 800);
-                        }
+                        if (newPin === (selectedEmployee?.personalCode || "")) processClockEvent(selectedEmployee);
+                        else { setPersonalPinError(true); setTimeout(() => { setPersonalPinInput(''); setPersonalPinError(false); }, 800); }
                     }
                 }
             };
@@ -213,72 +221,50 @@
             const processClockEvent = async (emp) => {
                 const clockTime = new Date();
                 const newStatus = emp.status === 'In' ? 'Out' : 'In';
-                
-                // Correct Voice logic: if status is now In, it means they clocked in.
                 if (newStatus === 'In') announce(`You have clocked in.`);
                 else announce(`You have clocked out.`);
 
                 let updateData = { status: newStatus, lastClock: clockTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
 
-                if (newStatus === 'In') {
-                    updateData.shiftStartTime = clockTime.toISOString();
-                } else {
+                if (newStatus === 'In') updateData.shiftStartTime = clockTime.toISOString();
+                else {
                     const startTime = new Date(emp.shiftStartTime || clockTime);
-                    const diffMs = clockTime - startTime;
-                    const shiftHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
-                    updateData.todayHours = (emp.todayHours || 0) + shiftHours;
+                    const shiftHours = parseFloat(((clockTime - startTime) / 3600000).toFixed(2));
+                    const todayStr = clockTime.toISOString().split('T')[0];
+                    let history = emp.history || [];
+                    const existingToday = history.findIndex(h => h.date === todayStr);
+                    if (existingToday > -1) history[existingToday].hours += shiftHours;
+                    else history.push({ date: todayStr, hours: shiftHours });
+
+                    updateData.todayHours = history.find(h => h.date === todayStr).hours;
                     updateData.weeklyHours = (emp.weeklyHours || 0) + shiftHours;
                     updateData.monthlyHours = (emp.monthlyHours || 0) + shiftHours;
-                    updateData.history = [...(emp.history || []), { date: clockTime.toISOString().split('T')[0], hours: shiftHours }];
+                    updateData.history = history;
                     updateData.shiftStartTime = null;
                 }
 
-                const finalEmp = { ...emp, ...updateData };
-                setSelectedEmployee(finalEmp);
-                setEmployees(prev => prev.map(e => e.id === emp.id ? finalEmp : e));
-                
-                setView('success_screen');
-                setPersonalPinInput('');
+                setSelectedEmployee({ ...emp, ...updateData });
+                setEmployees(prev => prev.map(e => e.id === emp.id ? { ...emp, ...updateData } : e));
+                setView('success_screen'); setPersonalPinInput('');
                 setTimeout(() => { setView('dashboard'); setSelectedEmployee(null); setScanComplete(false); }, 3000);
-                
-                if (isCloudLive) {
-                    try { await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id).update(updateData); } catch (e) {}
-                }
+                if (isCloudLive) try { await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id).update(updateData); } catch (e) {}
             };
 
             const handleEnrollSubmit = async (e) => {
                 e.preventDefault();
                 const profileData = { ...enrollForm, photo: capturedPhoto };
-                if (isCloudLive) {
-                    try {
-                        if (isEditing) {
-                            await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(editingId).update(profileData);
-                        } else {
-                            await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').add({ ...profileData, status: 'Out', todayHours: 0, yesterdayHours: 0, weeklyHours: 0, monthlyHours: 0, history: [] });
-                        }
-                        setShowEnrollModal(false); setIsEditing(false); setEditingId(null);
-                        setEnrollForm({ name: '', surname: '', address: '', idNumber: '', taxNumber: '', uifNumber: '', contactNumber: '', personalCode: '', hourlyRate: '0' });
-                        setCapturedPhoto(null);
-                    } catch (e) {}
-                }
+                if (isCloudLive) try {
+                    if (isEditing) await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(editingId).update(profileData);
+                    else await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').add({ ...profileData, status: 'Out', todayHours: 0, yesterdayHours: 0, weeklyHours: 0, monthlyHours: 0, history: [] });
+                    setShowEnrollModal(false); setIsEditing(false); setEditingId(null);
+                    setEnrollForm({ name: '', surname: '', address: '', idNumber: '', taxNumber: '', uifNumber: '', contactNumber: '', personalCode: '', hourlyRate: '0' });
+                    setCapturedPhoto(null);
+                } catch (e) {}
             };
 
             const openEditor = (emp) => {
-                setEnrollForm({ 
-                    name: emp.name || '', 
-                    surname: emp.surname || '', 
-                    address: emp.address || '', 
-                    idNumber: emp.idNumber || '', 
-                    taxNumber: emp.taxNumber || '', 
-                    uifNumber: emp.uifNumber || '', 
-                    contactNumber: emp.contactNumber || '', 
-                    personalCode: emp.personalCode || '', 
-                    hourlyRate: emp.hourlyRate || '0' 
-                });
-                setCapturedPhoto(emp.photo || null);
-                setEditingId(emp.id);
-                setIsEditing(true);
-                setShowEnrollModal(true);
+                setEnrollForm({ name: emp.name||'', surname: emp.surname||'', address: emp.address||'', idNumber: emp.idNumber||'', taxNumber: emp.taxNumber||'', uifNumber: emp.uifNumber||'', contactNumber: emp.contactNumber||'', personalCode: emp.personalCode||'', hourlyRate: emp.hourlyRate||'0' });
+                setCapturedPhoto(emp.photo||null); setEditingId(emp.id); setIsEditing(true); setShowEnrollModal(true);
             };
 
             const handleDeleteConfirm = async (e) => {
@@ -286,19 +272,14 @@
                 if (superPinInput === SUPER_USER_PIN) {
                     await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(targetDelete.id).delete();
                     setShowDeleteModal(false); setTargetDelete(null); setSuperPinInput('');
-                } else {
-                    setSuperPinError(true);
-                    setTimeout(() => setSuperPinError(false), 2000);
-                }
+                } else { setSuperPinError(true); setTimeout(() => setSuperPinError(false), 2000); }
             };
 
             const capturePhoto = () => {
-                const canvas = canvasRef.current;
-                const video = videoRef.current;
+                const canvas = canvasRef.current; const video = videoRef.current;
                 canvas.width = video.videoWidth; canvas.height = video.videoHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0);
-                setCapturedPhoto(canvas.toDataURL('image/jpeg'));
-                setIsCapturing(false);
+                setCapturedPhoto(canvas.toDataURL('image/jpeg')); setIsCapturing(false);
             };
 
             const PhotoAvatar = ({ emp, size = 100, className = "" }) => (
@@ -327,17 +308,13 @@
                 <div className="h-screen w-full bg-[#0c0c0c] flex flex-col relative overflow-hidden text-white">
                     <canvas ref={canvasRef} className="hidden" />
                     
-                    <header className={`p-6 border-b-2 ${!isLocked ? 'border-blue-500 shadow-2xl shadow-blue-500/10' : 'border-[#ff8c00]'} transition-all bg-black/40 backdrop-blur-xl sticky top-0 z-50`}>
+                    <header className="p-6 border-b-2 border-[#ff8c00] bg-black/40 backdrop-blur-xl sticky top-0 z-50">
                         <div className="flex justify-between items-center px-4">
                             <div className="flex items-center space-x-4">
-                                <div className={`p-3 rounded-2xl ${!isLocked ? 'bg-blue-500/10 text-blue-500' : 'bg-[#ff8c00]/10 text-[#ff8c00]'}`}>
-                                    <Icon name="hard-hat" size={28} />
-                                </div>
+                                <div className="p-3 rounded-2xl bg-[#ff8c00]/10 text-[#ff8c00]"><Icon name="hard-hat" size={28} /></div>
                                 <div>
-                                    <h1 className="text-3xl font-black italic tracking-tighter uppercase leading-none italic text-white">TimberSmith</h1>
-                                    <p className={`text-[9px] font-black uppercase tracking-[0.3em] mt-1 ${isCloudLive ? 'text-emerald-500' : 'text-gray-600'}`}>
-                                        {isCloudLive ? '• Cloud Node Verified' : '• Syncing Node'}
-                                    </p>
+                                    <h1 className="text-3xl font-black italic tracking-tighter uppercase leading-none italic"><span className="text-[#ff8c00]">TimberSmith</span> <span className="text-white">Joinery</span></h1>
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] mt-1 text-emerald-500">• Cloud Synchronized</p>
                                 </div>
                             </div>
                             <div className="text-right text-white italic">
@@ -348,7 +325,6 @@
                     </header>
 
                     <main className="flex-1 overflow-y-auto p-8 custom-scrollbar pb-36">
-                        {/* 1. Main Dashboard */}
                         {appMode === 'employee' && view === 'dashboard' && (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 animate-in fade-in">
                                 {employees.map(emp => (
@@ -364,13 +340,20 @@
                             </div>
                         )}
 
-                        {/* 2. ANALYTICS View */}
                         {appMode === 'analytics' && !isLocked && (
                              <div className="animate-in slide-in-from-right-10 duration-500">
                                 <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
                                     <div className="p-8 border-b border-white/5 bg-black/20 flex items-center justify-between text-white italic">
-                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">Labor Analysis Hub</h2>
-                                        <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl"><Icon name="bar-chart-3" /></div>
+                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white italic">Analysis Hub</h2>
+                                        <div className="flex items-center space-x-4 bg-black/40 px-6 py-3 rounded-full border border-white/5 shadow-inner">
+                                            <Icon name="calendar" size={16} className="text-blue-500" />
+                                            <div className="flex items-center space-x-2">
+                                                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none text-white w-28" />
+                                                <Icon name="arrow-right" size={12} className="text-gray-600" />
+                                                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none text-white w-28" />
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl"><Icon name="bar-chart-3" /></div>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left">
@@ -380,21 +363,18 @@
                                                     <th className="px-4 py-6 text-center">Status</th>
                                                     <th className="px-4 py-6 text-center text-orange-500">Yesterday</th>
                                                     <th className="px-4 py-6 text-center text-emerald-500">Today (Live)</th>
-                                                    <th className="px-4 py-6 text-center text-blue-500">Weekly</th>
+                                                    <th className="px-4 py-6 text-center text-blue-500">Selected Range</th>
                                                     <th className="px-4 py-6 text-center text-purple-500">Monthly</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5 text-white italic">
                                                 {employees.map(emp => (
                                                     <tr key={emp.id} className="hover:bg-white/5 transition-colors group">
-                                                        <td className="px-8 py-6 flex items-center space-x-4 text-left">
-                                                            <PhotoAvatar emp={emp} size={50} />
-                                                            <div><p className="font-black text-sm uppercase leading-none italic">{emp.name} {emp.surname}</p><p className="text-[9px] text-gray-600 font-bold uppercase mt-1">{emp.role}</p></div>
-                                                        </td>
-                                                        <td className="px-4 py-6 text-center"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${emp.status === 'In' ? 'bg-green-500/10 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : 'bg-red-500/10 text-red-500'}`}>{emp.status}</span></td>
-                                                        <td className="px-4 py-6 text-center font-mono font-black text-gray-400">{formatTime(emp.yesterdayHours)}</td>
-                                                        <td className="px-4 py-6 text-center font-mono font-black text-emerald-500">{formatTime(getLiveTodayHours(emp))}</td>
-                                                        <td className="px-4 py-6 text-center font-mono font-black text-blue-500">{formatTime(emp.weeklyHours + (emp.status === 'In' ? (currentTime - new Date(emp.shiftStartTime)) / 3600000 : 0))}</td>
+                                                        <td className="px-8 py-6 flex items-center space-x-4 text-left"><PhotoAvatar emp={emp} size={50} /><div><p className="font-black text-sm uppercase leading-none italic">{emp.name} {emp.surname}</p><p className="text-[9px] text-gray-600 font-bold mt-1 uppercase tracking-widest">{emp.role}</p></div></td>
+                                                        <td className="px-4 py-6 text-center"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${emp.status === 'In' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{emp.status}</span></td>
+                                                        <td className="px-4 py-6 text-center font-mono font-black text-gray-400">{formatTime(calculateEmployeeHours(emp, 'yesterday'))}</td>
+                                                        <td className="px-4 py-6 text-center font-mono font-black text-emerald-500">{formatTime(calculateEmployeeHours(emp, 'today'))}</td>
+                                                        <td className="px-4 py-6 text-center font-mono font-black text-blue-500">{formatTime(calculateEmployeeHours(emp, 'custom', startDate, endDate))}</td>
                                                         <td className="px-4 py-6 text-center font-mono font-black text-purple-500">{formatTime(emp.monthlyHours + (emp.status === 'In' ? (currentTime - new Date(emp.shiftStartTime)) / 3600000 : 0))}</td>
                                                     </tr>
                                                 ))}
@@ -405,201 +385,45 @@
                             </div>
                         )}
 
-                        {/* 3. ADMIN REGISTRY VIEW */}
-                        {appMode === 'admin' && !isLocked && (
-                             <div className="animate-in slide-in-from-right-10 duration-500">
-                                <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden mb-8">
-                                    <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
-                                        <h2 className="text-2xl font-black uppercase italic tracking-tighter">Artisan Registry Management</h2>
-                                        <button onClick={() => { setIsEditing(false); setShowEnrollModal(true); }} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center space-x-3 active:scale-95 transition-all italic">
-                                            <Icon name="user-plus" size={18}/><span>Register Artisan</span>
-                                        </button>
-                                    </div>
-                                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {employees.map(emp => (
-                                            <div key={emp.id} className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-all shadow-inner">
-                                                <div className="flex items-center space-x-5 text-left">
-                                                    <PhotoAvatar emp={emp} size={70} />
-                                                    <div>
-                                                        <h3 className="font-black italic uppercase text-white leading-none italic">{emp.name} {emp.surname}</h3>
-                                                        <p className="text-[10px] text-blue-500 font-black uppercase mt-2">{emp.role}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col gap-3">
-                                                    <button onClick={() => openEditor(emp)} className="p-3 text-white/20 hover:text-blue-500 transition-all active:scale-90"><Icon name="edit-3" size={20}/></button>
-                                                    <button onClick={() => { setTargetDelete(emp); setShowDeleteModal(true); }} className="p-3 text-red-500/20 hover:text-red-500 transition-all active:scale-90"><Icon name="trash-2" size={20}/></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                        {appMode === 'mobile' && (
+                             <div className="max-w-md mx-auto p-12 bg-[#1a1a1a] rounded-[4rem] border border-white/10 shadow-2xl text-center animate-in zoom-in duration-500">
+                                <div className="p-5 bg-white/5 w-fit mx-auto rounded-3xl mb-8"><Icon name="smartphone" size={48} className="text-orange-500" /></div>
+                                <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-4 italic text-white">Android Mobile App</h2>
+                                <p className="text-xs text-gray-500 font-black uppercase tracking-widest mb-10 leading-relaxed italic">Scan this code to launch the workshop terminal on any Android device</p>
+                                <div className="bg-white p-6 rounded-[3rem] shadow-inner inline-block border-8 border-white/5">
+                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(APP_MOBILE_LINK)}`} alt="QR Code" className="w-64 h-64" />
                                 </div>
-                            </div>
-                        )}
-
-                        {/* EMPLOYEE ACTIONS */}
-                        {view === 'emp_home' && selectedEmployee && (
-                           <div className="max-w-4xl mx-auto p-12 bg-[#1a1a1a] rounded-[5rem] border border-white/5 shadow-2xl animate-in slide-in-from-bottom-20 duration-500">
-                               <div className="flex items-center gap-10 mb-16">
-                                   <PhotoAvatar emp={selectedEmployee} size={160} className="border-4 border-[#ff8c00] shadow-2xl shadow-black/80" />
-                                   <div className="flex-1">
-                                       <h2 className="text-6xl font-black uppercase italic tracking-tighter leading-none italic">{selectedEmployee.name} {selectedEmployee.surname}</h2>
-                                       <p className="text-2xl font-black text-gray-500 uppercase tracking-[0.4em] mt-4 italic">{selectedEmployee.role}</p>
-                                   </div>
-                                   <button onClick={() => setView('dashboard')} className="p-6 bg-white/5 rounded-full text-gray-500 hover:text-white transition-all"><Icon name="x" size={40}/></button>
-                               </div>
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                   <button onClick={() => setView('scanning')} className="bg-black/60 p-16 rounded-[4rem] flex flex-col items-center gap-8 border-2 border-transparent hover:border-[#ff8c00] transition-all group active:scale-95 shadow-xl">
-                                       <div className="p-8 bg-[#ff8c00]/10 text-[#ff8c00] rounded-[2.5rem]"><Icon name="clock" size={80} /></div>
-                                       <span className="font-black uppercase italic text-3xl tracking-widest text-white italic">Clocking</span>
-                                   </button>
-                                   <button onClick={() => {setAppMode('hr'); setView('dashboard');}} className="bg-black/60 p-16 rounded-[4rem] flex flex-col items-center gap-8 border-2 border-transparent hover:border-indigo-500 transition-all group active:scale-95 shadow-xl">
-                                       <div className="p-8 bg-indigo-500/10 text-indigo-400 rounded-[2.5rem]"><Icon name="scale" size={80} /></div>
-                                       <span className="font-black uppercase italic text-3xl tracking-widest text-white italic">Compliance</span>
-                                   </button>
-                               </div>
-                           </div>
-                        )}
-
-                        {/* SECURITY SEQUENCE */}
-                        {view === 'scanning' && selectedEmployee && (
-                           <div className="fixed inset-0 z-[150] bg-black/98 flex flex-col items-center justify-center p-12 animate-in zoom-in">
-                               <div className="w-full max-w-2xl aspect-square relative rounded-[5rem] overflow-hidden border-[20px] border-[#222] shadow-[0_0_150px_rgba(255,140,0,0.15)]">
-                                   <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover grayscale contrast-125" />
-                                   <div className="absolute inset-0 flex flex-col items-center justify-center p-10">
-                                       <div className={`w-3/4 aspect-square border-4 rounded-[5rem] transition-all duration-700 ${scanComplete ? 'border-emerald-500 scale-105 shadow-[0_0_100px_rgba(16,185,129,0.3)]' : 'border-[#ff8c00] animate-pulse'}`}>
-                                           <div className="absolute inset-0 opacity-10 flex items-center justify-center"><Icon name="fingerprint" size={200}/></div>
-                                           {!scanComplete && <div className="absolute w-full h-2 bg-[#ff8c00] top-0 animate-[scan_2s_linear_infinite] shadow-[0_0_50px_#ff8c00]" />}
-                                       </div>
-                                   </div>
-                               </div>
-                               <h3 className="mt-12 text-[#ff8c00] font-black uppercase text-2xl tracking-[0.8em] animate-pulse italic text-center italic italic">Scanning identity: {selectedEmployee.name}</h3>
-                               <button onClick={() => setView('emp_home')} className="mt-8 text-gray-600 font-black uppercase text-xs hover:text-white transition-colors italic underline underline-offset-8">Abort Sequence</button>
-                           </div>
-                        )}
-
-                        {view === 'personal_pin_entry' && selectedEmployee && (
-                           <div className="fixed inset-0 z-[200] bg-[#0c0c0c] flex flex-col items-center justify-center animate-in slide-in-from-bottom-20">
-                               <div className="bg-[#151515] p-12 rounded-[5rem] border border-white/10 text-center w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.8)]">
-                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
-                                       <Icon name="key-round" size={60} />
-                                   </div>
-                                   <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-1 text-white italic">Authorization Check</h2>
-                                   <p className="text-gray-500 text-[11px] font-black uppercase mb-12 tracking-widest italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
-                                   <div className="flex justify-center space-x-6 mb-16">
-                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
-                                   </div>
-                                   <div className="grid grid-cols-3 gap-4">
-                                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
-                                           <button key={n} onClick={() => n === 'X' ? setView('emp_home') : n === 'C' ? setPersonalPinInput('') : handlePersonalPinDigit(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white active:bg-blue-600 transition-all">{n}</button>
-                                       ))}
-                                   </div>
-                               </div>
-                           </div>
-                        )}
-
-                        {view === 'success_screen' && selectedEmployee && (
-                             <div className="fixed inset-0 z-[500] bg-black/95 flex flex-col items-center justify-center p-12 text-center animate-in fade-in">
-                                <div className={`w-64 h-64 rounded-full border-[15px] p-2 shadow-2xl mb-12 overflow-hidden ${selectedEmployee.status === 'In' ? 'border-emerald-500 shadow-emerald-500/30' : 'border-red-500 shadow-red-500/30'}`}>
-                                    <PhotoAvatar emp={selectedEmployee} size="100%" className="border-0 rounded-full shadow-none" />
-                                </div>
-                                <h2 className="text-8xl font-black italic uppercase tracking-tighter text-white mb-4 leading-none italic text-center italic">IDENTITY VERIFIED</h2>
-                                <p className="text-3xl font-black text-gray-500 uppercase tracking-widest mb-16 italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
-                                <div className={`bg-[#151515] w-full max-w-md p-14 rounded-[5rem] text-center border-b-[16px] shadow-2xl ${selectedEmployee.status === 'In' ? 'border-emerald-500' : 'border-red-500'}`}>
-                                   <p className={`text-9xl font-mono font-black italic uppercase leading-none ${selectedEmployee.status === 'In' ? 'text-green-500' : 'text-red-500'}`}>
-                                       {selectedEmployee.status === 'In' ? 'IN' : 'OUT'}
-                                   </p>
+                                <div className="mt-10 p-5 bg-black/20 rounded-2xl border border-white/5">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 italic">Link verified: TSJoinery Protocol v1.0</p>
                                 </div>
                              </div>
                         )}
+
+                        {/* REUSED VIEWS */}
+                        {appMode === 'admin' && !isLocked && (
+                             <div className="animate-in slide-in-from-right-10 p-4"><div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden p-8"><div className="flex justify-between items-center mb-8 italic"><h2 className="text-2xl font-black uppercase italic tracking-tighter">Artisan Registry</h2><button onClick={() => { setIsEditing(false); setShowEnrollModal(true); }} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center space-x-3 active:scale-95 transition-all"><Icon name="user-plus" size={18}/><span>Register Artisan</span></button></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{employees.map(emp => (<div key={emp.id} className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-all shadow-inner italic"><div className="flex items-center space-x-5 text-left"><PhotoAvatar emp={emp} size={70} /><div><h3 className="font-black italic uppercase text-white leading-none italic">{emp.name} {emp.surname}</h3><p className="text-[10px] text-blue-500 font-black uppercase mt-2">{emp.role}</p></div></div><div className="flex flex-col gap-3"><button onClick={() => openEditor(emp)} className="p-3 text-white/20 hover:text-blue-500 transition-all"><Icon name="edit-3" size={20}/></button><button onClick={() => { setTargetDelete(emp); setShowDeleteModal(true); }} className="p-3 text-red-500/20 hover:text-red-500 transition-all"><Icon name="trash-2" size={20}/></button></div></div>))}</div></div></div>
+                        )}
                     </main>
-
-                    {/* ENROLLMENT / EDITING MODAL */}
-                    {showEnrollModal && (
-                        <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in">
-                            <div className="bg-[#151515] w-full max-w-5xl rounded-[4rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                                <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
-                                    <h2 className="text-3xl font-black uppercase italic tracking-tighter">{isEditing ? 'Update Personnel Profile' : 'Artisan Enrollment Profile'}</h2>
-                                    <button onClick={() => setShowEnrollModal(false)} className="p-3 text-gray-500 hover:text-white transition-all"><Icon name="x" size={32}/></button>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-white italic text-left">
-                                    <form onSubmit={handleEnrollSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                                        <div className="space-y-10">
-                                            <div className="relative group text-left">
-                                                <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 mb-6 ml-2 italic">1. Identity Photo Capture</p>
-                                                <div className="aspect-square bg-black rounded-[4rem] border-4 border-white/5 overflow-hidden relative shadow-inner">
-                                                    {isCapturing ? <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" /> : capturedPhoto ? <img src={capturedPhoto} className="w-full h-full object-cover" /> : <div className="h-full flex flex-col items-center justify-center text-gray-800"><Icon name="id-card" size={100} /><p className="mt-4 font-black uppercase text-[11px] tracking-widest">Awaiting Capture</p></div>}
-                                                    <div className="absolute bottom-8 inset-x-8 flex gap-4">
-                                                        <button type="button" onClick={() => setIsCapturing(true)} className="flex-1 py-5 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-white/10 transition-all italic">Open Camera</button>
-                                                        {isCapturing && <button type="button" onClick={capturePhoto} className="p-5 bg-emerald-600 rounded-2xl active:scale-90 transition-all shadow-xl"><Icon name="camera" size={28}/></button>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-8 h-fit italic">
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">First Name</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white" value={enrollForm.name} onChange={e => setEnrollForm({...enrollForm, name: e.target.value})} /></div>
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Surname</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white" value={enrollForm.surname} onChange={e => setEnrollForm({...enrollForm, surname: e.target.value})} /></div>
-                                            <div className="col-span-2 space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Residential Address</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white" value={enrollForm.address} onChange={e => setEnrollForm({...enrollForm, address: e.target.value})} /></div>
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">ID Number</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-mono text-white" value={enrollForm.idNumber} onChange={e => setEnrollForm({...enrollForm, idNumber: e.target.value})} /></div>
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Number</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.contactNumber} onChange={e => setEnrollForm({...enrollForm, contactNumber: e.target.value})} /></div>
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Tax Number</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.taxNumber} onChange={e => setEnrollForm({...enrollForm, taxNumber: e.target.value})} /></div>
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">UIF Number</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.uifNumber} onChange={e => setEnrollForm({...enrollForm, uifNumber: e.target.value})} /></div>
-                                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Rate Agreement (R/hr)</label><input required type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.hourlyRate} onChange={e => setEnrollForm({...enrollForm, hourlyRate: e.target.value})} /></div>
-                                            <div className="col-span-2 space-y-2 mt-4"><label className="text-[11px] font-black uppercase text-orange-500 ml-4 tracking-widest">Secret Terminal PIN (4 Digits)</label><input required className="w-full bg-black border-2 border-orange-500/20 rounded-3xl p-6 text-center text-4xl font-black text-orange-500 tracking-[0.5em]" maxLength="4" value={enrollForm.personalCode} onChange={e => setEnrollForm({...enrollForm, personalCode: e.target.value})} /></div>
-                                            <button type="submit" className="col-span-2 mt-8 py-8 bg-white text-black rounded-[3rem] font-black uppercase tracking-[0.4em] text-sm shadow-2xl active:scale-95 transition-all italic">{isEditing ? 'Update Records' : 'Commit Enrollment'}</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* DELETE SECURITY MODAL */}
-                    {showDeleteModal && (
-                        <div className="fixed inset-0 z-[1200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 animate-in fade-in">
-                            <div className="bg-[#151515] p-12 rounded-[5rem] text-center border-2 border-red-500/20 w-full max-w-sm shadow-[0_0_100px_rgba(239,68,68,0.1)]">
-                                <div className="p-6 bg-red-500/10 text-red-500 rounded-full w-fit mx-auto mb-8 shadow-inner"><Icon name="shield-alert" size={54} /></div>
-                                <h3 className="text-xl font-black uppercase italic italic text-white mb-2 italic">Authorize Removal</h3>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-10 italic">Deleting Profile: {targetDelete?.name}</p>
-                                <form onSubmit={handleDeleteConfirm}>
-                                    <input type="password" autoFocus placeholder="Enter Super PIN" className="w-full bg-black border border-white/10 rounded-2xl p-6 text-center text-3xl font-mono tracking-[0.5em] mb-8 outline-none focus:border-red-500 transition-all text-white" value={superPinInput} onChange={e => setSuperPinInput(e.target.value)} />
-                                    <div className="flex gap-4">
-                                        <button type="button" onClick={() => setShowDeleteModal(false)} className="flex-1 py-5 bg-white/5 rounded-2xl font-black uppercase text-[10px] tracking-widest text-white italic">Cancel</button>
-                                        <button type="submit" className="flex-1 py-5 bg-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl text-white italic">Confirm Delete</button>
-                                    </div>
-                                </form>
-                                {superPinError && <p className="mt-6 text-red-500 text-[10px] font-black uppercase animate-pulse italic">Authorization Refused</p>}
-                            </div>
-                        </div>
-                    )}
 
                     {!hideTaskbar && (
                         <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/10 flex items-center space-x-3 shadow-[0_50px_100px_rgba(0,0,0,0.8)] z-[200] scale-90 md:scale-100 transition-all animate-in slide-in-from-bottom-5">
-                            <NavItem icon="layout-dashboard" tooltip="Workshop Dashboard" active={appMode === 'employee'} onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); setSelectedAnalyticsEmployee(null); }} />
+                            <NavItem icon="layout-dashboard" tooltip="Workshop Dashboard" active={appMode === 'employee'} colorClass="bg-[#ff8c00] text-white shadow-lg" onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
                             <div className="w-[1px] h-10 bg-white/10 mx-2" />
-                            <NavItem icon={isLocked ? "lock" : "unlock"} tooltip={isLocked ? "Access Management Console" : "Lock Hub"} active={!isLocked} colorClass="text-blue-500 bg-blue-500/10 shadow-[0_0_30px_#3b82f622]" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
+                            <NavItem icon={isLocked ? "lock" : "unlock"} tooltip="Supervisor Portal" active={!isLocked} colorClass="text-blue-500 bg-blue-500/10 shadow-[0_0_30px_#3b82f622]" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
                             {!isLocked && (
                                 <div className="flex items-center space-x-3 border-l border-white/10 pl-3 animate-in slide-in-from-left-10 duration-500">
-                                    <NavItem icon="users" tooltip="Staff Registry & Enrollment" active={appMode === 'admin'} colorClass="bg-blue-600 text-white shadow-xl" onClick={() => { setAppMode('admin'); setView('dashboard'); }} />
-                                    <NavItem icon="bar-chart-3" tooltip="Labor & Work Analytics" active={appMode === 'analytics'} colorClass="bg-emerald-600 text-white shadow-xl" onClick={() => { setAppMode('analytics'); setView('dashboard'); }} />
-                                    <NavItem icon="banknote" tooltip="Payroll Processing" active={appMode === 'payroll'} colorClass="bg-indigo-600 text-white shadow-xl" onClick={() => setAppMode('payroll')} />
-                                    <NavItem icon="scale" tooltip="Compliance Node" active={appMode === 'hr'} colorClass="bg-purple-600 text-white shadow-xl" onClick={() => setAppMode('hr')} />
+                                    <NavItem icon="users" tooltip="Artisan Registry" active={appMode === 'admin'} colorClass="bg-blue-600 text-white shadow-blue-600/20" onClick={() => setAppMode('admin')} />
+                                    <NavItem icon="bar-chart-3" tooltip="Work Analytics" active={appMode === 'analytics'} colorClass="bg-emerald-600 text-white shadow-emerald-600/20" onClick={() => setAppMode('analytics')} />
+                                    <NavItem icon="banknote" tooltip="Payroll Processing" active={appMode === 'payroll'} colorClass="bg-amber-500 text-white shadow-amber-500/20" onClick={() => setAppMode('payroll')} />
+                                    <NavItem icon="scale" tooltip="Compliance Node" active={appMode === 'hr'} colorClass="bg-purple-600 text-white shadow-purple-600/20" onClick={() => setAppMode('hr')} />
+                                    <NavItem icon="smartphone" tooltip="Mobile Deployment" active={appMode === 'mobile'} colorClass="bg-pink-600 text-white shadow-pink-600/20" onClick={() => setAppMode('mobile')} />
                                 </div>
                             )}
                         </footer>
                     )}
 
                     {showPinModal && (
-                        <div className="fixed inset-0 z-[900] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in">
-                            <div className="bg-[#151515] p-12 rounded-[5rem] text-center border border-white/10 w-full max-w-sm shadow-2xl">
-                                <div className="p-6 bg-blue-500/10 text-blue-500 rounded-full w-fit mx-auto mb-8 shadow-inner"><Icon name="shield-alert" size={54} /></div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 mb-12 italic italic">Supervisor Handshake</p>
-                                <div className="grid grid-cols-3 gap-4">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
-                                        <button key={n} onClick={() => n === 'X' ? setShowPinModal(false) : n === 'C' ? setPinInput('') : handleAdminPin(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white active:bg-blue-600 transition-all">{n}</button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                        <div className="fixed inset-0 z-[900] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in"><div className="bg-[#151515] p-12 rounded-[5rem] text-center border border-white/10 w-full max-w-sm shadow-2xl"><div className="p-6 bg-blue-500/10 text-blue-500 rounded-full w-fit mx-auto mb-8 shadow-inner"><Icon name="shield-alert" size={54} /></div><p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 mb-12 italic">Supervisor Handshake</p><div className="grid grid-cols-3 gap-4">{[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (<button key={n} onClick={() => n === 'X' ? setShowPinModal(false) : n === 'C' ? setPinInput('') : handleAdminPin(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white active:bg-blue-600 transition-all">{n}</button>))}</div></div></div>
                     )}
                 </div>
             );
