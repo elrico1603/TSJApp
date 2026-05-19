@@ -26,7 +26,7 @@
         video { transform: scaleX(-1); border-radius: 2.5rem; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .tooltip-arrow { border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid rgba(0,0,0,0.9); }
-        input::placeholder { color: #444; }
+        input::placeholder, textarea::placeholder { color: #444; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
         
         #root:empty::before {
@@ -38,6 +38,13 @@
             text-align: center; width: 100%;
         }
         @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* Print Engine Overrides */
+        @media print {
+            body { background: white !important; color: black !important; overflow: auto !important; height: auto !important; }
+            .no-print { display: none !important; }
+            @page { margin: 1.5cm; }
+        }
     </style>
 </head>
 <body>
@@ -97,7 +104,11 @@
                 'smartphone': <Fragment><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></Fragment>,
                 'banknote': <Fragment><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></Fragment>,
                 'scale': <Fragment><path d="M16 16 20 22"/><path d="M8 16 4 22"/><path d="M3 10h18"/><path d="M12 2v20"/><path d="m7 10 2-2 3-2 3 2 2 2"/><path d="M21 10c0 4.418-4.03 8-9 8s-9-3.582-9-8"/></Fragment>,
-                'shield-alert': <Fragment><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></Fragment>
+                'shield-alert': <Fragment><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></Fragment>,
+                'printer': <Fragment><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></Fragment>,
+                'file-down': <Fragment><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></Fragment>,
+                'plane-takeoff': <Fragment><path d="M2 22 12 2l10 20Z"/><path d="M6 18h12"/></Fragment>,
+                'archive': <Fragment><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></Fragment>
             };
             return (
                 <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -116,15 +127,36 @@
             const [pinInput, setPinInput] = useState('');
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
-            const [lastClockResult, setLastClockResult] = useState(null); // Visual sync aid
+            
+            // Clocking & Actions State
+            const [lastClockResult, setLastClockResult] = useState(null);
             const [scanComplete, setScanComplete] = useState(false);
             const [personalPinInput, setPersonalPinInput] = useState('');
             const [personalPinError, setPersonalPinError] = useState(false);
+            const [pendingAction, setPendingAction] = useState('normal');
+            
+            // Forms State
+            const [timeOffReason, setTimeOffReason] = useState('');
+            const [borrowAmount, setBorrowAmount] = useState('');
+            const [borrowReason, setBorrowReason] = useState('');
+            const [borrowMethod, setBorrowMethod] = useState('');
+            const [archiveReason, setArchiveReason] = useState('');
+            
+            const [capturedBorrowPhoto, setCapturedBorrowPhoto] = useState(null);
+            const [isBorrowCapturing, setIsBorrowCapturing] = useState(false);
+            
+            // Supervisor Approval State
+            const [supervisorApprovalPinInput, setSupervisorApprovalPinInput] = useState('');
+            const [supervisorApprovalPinError, setSupervisorApprovalPinError] = useState(false);
+
+            // Print Engine State
+            const [printingEmployee, setPrintingEmployee] = useState(null);
 
             // Date Range Picker State
             const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
             const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
             
+            // Edit / Admin Flow State
             const [showEnrollModal, setShowEnrollModal] = useState(false);
             const [isEditing, setIsEditing] = useState(false);
             const [editingId, setEditingId] = useState(null);
@@ -172,6 +204,17 @@
                 return total;
             };
 
+            const handleExportPDF = (emp) => {
+                setPrintingEmployee(emp);
+                setTimeout(() => { window.print(); setPrintingEmployee(null); }, 500); 
+            };
+
+            const SA_HOLIDAYS = {
+                "2024-01-01": "New Year's Day", "2024-03-21": "Human Rights Day", "2024-03-29": "Good Friday", "2024-04-01": "Family Day", "2024-04-27": "Freedom Day", "2024-05-01": "Workers' Day", "2024-06-16": "Youth Day", "2024-06-17": "Youth Day (Obs)", "2024-08-09": "National Women's Day", "2024-09-24": "Heritage Day", "2024-12-16": "Day of Reconciliation", "2024-12-25": "Christmas Day", "2024-12-26": "Day of Goodwill",
+                "2025-01-01": "New Year's Day", "2025-03-21": "Human Rights Day", "2025-04-18": "Good Friday", "2025-04-21": "Family Day", "2025-04-27": "Freedom Day", "2025-04-28": "Freedom Day (Obs)", "2025-05-01": "Workers' Day", "2025-06-16": "Youth Day", "2025-08-09": "National Women's Day", "2025-08-11": "National Women's Day (Obs)", "2025-09-24": "Heritage Day", "2025-12-16": "Day of Reconciliation", "2025-12-25": "Christmas Day", "2025-12-26": "Day of Goodwill",
+                "2026-01-01": "New Year's Day", "2026-03-21": "Human Rights Day", "2026-04-03": "Good Friday", "2026-04-06": "Family Day", "2026-04-27": "Freedom Day", "2026-05-01": "Workers' Day", "2026-06-16": "Youth Day", "2026-08-09": "National Women's Day", "2026-08-10": "National Women's Day (Obs)", "2026-09-24": "Heritage Day", "2026-12-16": "Day of Reconciliation", "2026-12-25": "Christmas Day", "2026-12-26": "Day of Goodwill"
+            };
+
             useEffect(() => {
                 auth.onAuthStateChanged(async (u) => {
                     if (u) {
@@ -193,12 +236,12 @@
 
             useEffect(() => {
                 const stopCamera = () => { if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; } };
-                if ((view === 'scanning' || isCapturing)) {
+                if ((view === 'scanning' || isCapturing || isBorrowCapturing)) {
                     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 1280, height: 720 } })
                         .then(s => { streamRef.current = s; if(videoRef.current) { videoRef.current.srcObject = s; videoRef.current.play(); } });
                 } else { stopCamera(); }
                 return () => stopCamera();
-            }, [view, isCapturing]);
+            }, [view, isCapturing, isBorrowCapturing]);
 
             const handleAdminPin = (digit) => {
                 const newPin = pinInput + digit;
@@ -213,26 +256,101 @@
                     const newPin = personalPinInput + digit;
                     setPersonalPinInput(newPin);
                     if (newPin.length === 4) {
-                        if (newPin === (selectedEmployee?.personalCode || "")) processClockEvent(selectedEmployee);
+                        if (newPin === (selectedEmployee?.personalCode || "")) {
+                            processClockEvent(selectedEmployee);
+                        }
                         else { setPersonalPinError(true); setTimeout(() => { setPersonalPinInput(''); setPersonalPinError(false); }, 800); }
                     }
                 }
             };
 
+            const handleSupervisorApprovalDigit = (digit) => {
+                if (supervisorApprovalPinInput.length < 4) {
+                    const newPin = supervisorApprovalPinInput + digit;
+                    setSupervisorApprovalPinInput(newPin);
+                    if (newPin.length === 4) {
+                        if (newPin === ADMIN_PIN || newPin === SUPER_USER_PIN) {
+                            if (pendingAction === 'borrow_money') {
+                                processMoneyBorrow(selectedEmployee);
+                            } else if (pendingAction === 'archive') {
+                                setView('emp_archive_reason');
+                            } else {
+                                processClockEvent(selectedEmployee);
+                            }
+                            setSupervisorApprovalPinInput('');
+                        } else {
+                            setSupervisorApprovalPinError(true);
+                            setTimeout(() => { setSupervisorApprovalPinInput(''); setSupervisorApprovalPinError(false); }, 800);
+                        }
+                    }
+                }
+            };
+
+            const processMoneyBorrow = async (emp) => {
+                const baseAmount = parseFloat(borrowAmount);
+                const fee = borrowMethod === 'Immediate Payment' ? 75 : 0;
+                const totalAmount = baseAmount + fee;
+                const dateStr = getLocalDateString(new Date());
+                const advance = { date: dateStr, amount: totalAmount, baseAmount: baseAmount, fee: fee, reason: borrowReason, method: borrowMethod, photo: capturedBorrowPhoto, timestamp: new Date().toISOString() };
+                
+                let newAdvances = emp.advances || [];
+                newAdvances.push(advance);
+                
+                announce(`Money borrowed request of ${totalAmount} Rand approved.`);
+                
+                setEmployees(prev => prev.map(e => e.id === emp.id ? { ...emp, advances: newAdvances } : e));
+                setView('dashboard'); setSelectedEmployee(null);
+                setPendingAction('normal'); setBorrowAmount(''); setBorrowReason(''); setBorrowMethod(''); setCapturedBorrowPhoto(null);
+                
+                if (isCloudLive) {
+                    try { await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id).update({ advances: newAdvances }); } catch (e) {}
+                }
+            };
+
+            const processArchive = async (emp) => {
+                const dateStr = getLocalDateString(new Date());
+                
+                announce(`${emp.name} has been formally archived.`);
+                
+                setEmployees(prev => prev.map(e => e.id === emp.id ? { ...emp, isArchived: true, archiveReason: archiveReason, status: 'Archived' } : e));
+                setView('dashboard'); setSelectedEmployee(null);
+                setPendingAction('normal'); setArchiveReason('');
+                
+                if (isCloudLive) {
+                    try { await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id).update({ isArchived: true, archiveReason: archiveReason, status: 'Archived', archiveDate: dateStr }); } catch (e) {}
+                }
+            };
+
             const processClockEvent = async (emp) => {
                 const clockTime = new Date();
-                const newStatus = emp.status === 'In' ? 'Out' : 'In';
+                let newStatus;
+                let actionMsg;
+
+                if (pendingAction === 'time_off_out') {
+                    newStatus = 'Break';
+                    actionMsg = `Time off logged: ${timeOffReason}`;
+                } else if (pendingAction === 'time_off_in') {
+                    newStatus = 'In';
+                    actionMsg = `Returned to work.`;
+                } else {
+                    newStatus = emp.status === 'In' ? 'Out' : 'In';
+                    actionMsg = newStatus === 'In' ? `You have clocked in.` : `You have clocked out.`;
+                }
                 
-                // Set result for visual sync
                 setLastClockResult(newStatus);
-                
-                if (newStatus === 'In') announce(`You have clocked in.`);
-                else announce(`You have clocked out.`);
+                announce(actionMsg);
 
                 let updateData = { status: newStatus, lastClock: clockTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
 
-                if (newStatus === 'In') updateData.shiftStartTime = clockTime.toISOString();
-                else {
+                if (newStatus === 'Break') {
+                    updateData.currentBreakReason = timeOffReason;
+                } else if (newStatus === 'In') {
+                    updateData.currentBreakReason = null;
+                }
+
+                if (newStatus === 'In') {
+                    updateData.shiftStartTime = clockTime.toISOString();
+                } else {
                     const startTime = new Date(emp.shiftStartTime || clockTime);
                     const shiftHours = parseFloat(((clockTime - startTime) / 3600000).toFixed(2));
                     const todayStr = clockTime.toISOString().split('T')[0];
@@ -250,6 +368,8 @@
 
                 setEmployees(prev => prev.map(e => e.id === emp.id ? { ...emp, ...updateData } : e));
                 setView('success_screen'); setPersonalPinInput('');
+                setPendingAction('normal'); setTimeOffReason('');
+                
                 setTimeout(() => { setView('dashboard'); setSelectedEmployee(null); setScanComplete(false); setLastClockResult(null); }, 3500);
                 if (isCloudLive) try { await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id).update(updateData); } catch (e) {}
             };
@@ -259,7 +379,7 @@
                 const profileData = { ...enrollForm, photo: capturedPhoto };
                 if (isCloudLive) try {
                     if (isEditing) await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(editingId).update(profileData);
-                    else await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').add({ ...profileData, status: 'Out', todayHours: 0, yesterdayHours: 0, weeklyHours: 0, monthlyHours: 0, history: [] });
+                    else await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').add({ ...profileData, status: 'Out', isArchived: false, todayHours: 0, yesterdayHours: 0, weeklyHours: 0, monthlyHours: 0, history: [] });
                     setShowEnrollModal(false); setIsEditing(false); setEditingId(null);
                     setEnrollForm({ name: '', surname: '', address: '', idNumber: '', taxNumber: '', uifNumber: '', contactNumber: '', personalCode: '', hourlyRate: '0' });
                     setCapturedPhoto(null);
@@ -279,11 +399,13 @@
                 } else { setSuperPinError(true); setTimeout(() => setSuperPinError(false), 2000); }
             };
 
+            // SAFE COMPRESSION ENGINE TO PREVENT FIRESTORE 1MB CRASH
             const capturePhoto = () => {
                 const canvas = canvasRef.current; const video = videoRef.current;
-                canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                setCapturedPhoto(canvas.toDataURL('image/jpeg')); setIsCapturing(false);
+                canvas.width = 320; canvas.height = 240;
+                canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+                setCapturedPhoto(canvas.toDataURL('image/jpeg', 0.6)); setIsCapturing(false);
+                if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
             };
 
             const PhotoAvatar = ({ emp, size = 100, className = "" }) => (
@@ -306,39 +428,37 @@
                 </div>
             );
 
-            const hideTaskbar = ['scanning', 'personal_pin_entry', 'success_screen'].includes(view);
+            const hideTaskbar = ['scanning', 'personal_pin_entry', 'supervisor_approval', 'emp_archive_reason', 'success_screen', 'emp_time_off', 'emp_money_borrowed'].includes(view);
 
             return (
-                <div className="h-screen w-full bg-[#0c0c0c] flex flex-col relative overflow-hidden text-white">
+                <Fragment>
+                {/* --- MAIN APP (Hides during print) --- */}
+                <div className={`h-screen w-full bg-[#0c0c0c] flex flex-col relative overflow-hidden text-white italic ${printingEmployee ? 'hidden no-print' : ''}`}>
                     <canvas ref={canvasRef} className="hidden" />
                     
-                    <header className="p-6 border-b-2 border-[#ff8c00] bg-black/40 backdrop-blur-xl sticky top-0 z-50">
-                        <div className="flex justify-between items-center px-4">
-                            <div className="flex items-center space-x-4">
-                                <div className="p-3 rounded-2xl bg-[#ff8c00]/10 text-[#ff8c00] shadow-[0_0_20px_rgba(255,140,0,0.1)]"><Icon name="hard-hat" size={28} /></div>
-                                <div>
-                                    <h1 className="text-3xl font-black italic tracking-tighter uppercase leading-none italic">
-                                        <span className="text-[#ff8c00]">TimberSmith</span> <span className="text-white italic">Joinery</span>
-                                    </h1>
-                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] mt-1 text-emerald-500">• Terminal Synchronized</p>
-                                </div>
+                    <header className="p-6 border-b-2 border-[#ff8c00] bg-black/40 backdrop-blur-xl sticky top-0 z-50 flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                            <div className="p-3 rounded-2xl bg-[#ff8c00]/10 text-[#ff8c00] shadow-[0_0_20px_rgba(255,140,0,0.1)]"><Icon name="hard-hat" size={28} /></div>
+                            <div>
+                                <h1 className="text-3xl font-black italic tracking-tighter uppercase leading-none italic"><span className="text-[#ff8c00]">TimberSmith</span> <span className="text-white">Joinery</span></h1>
+                                <p className={`text-[9px] font-black uppercase tracking-[0.3em] mt-1 ${isCloudLive ? 'text-emerald-500' : 'text-orange-500 animate-pulse'}`}>• Terminal Synchronized</p>
                             </div>
-                            <div className="text-right text-white italic">
-                                <p className="text-2xl font-mono font-black leading-none tracking-tighter">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                <p className="text-[10px] font-black text-gray-500 uppercase mt-2 tracking-widest">{currentTime.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                            </div>
+                        </div>
+                        <div className="text-right text-white italic">
+                            <p className="text-2xl font-mono font-black leading-none">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-[10px] font-black text-gray-500 uppercase mt-2 tracking-widest">{currentTime.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })}</p>
                         </div>
                     </header>
 
                     <main className="flex-1 overflow-y-auto p-8 custom-scrollbar pb-36">
-                        {/* 1. Main Artisan Selection Dashboard */}
+                        {/* 1. Main Artisan Selection Dashboard (Filters out Archived) */}
                         {appMode === 'employee' && view === 'dashboard' && (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 animate-in fade-in">
-                                {employees.map(emp => (
+                                {employees.filter(emp => !emp.isArchived).map(emp => (
                                     <div key={emp.id} onClick={() => { setSelectedEmployee(emp); setView('emp_home'); }} className="bg-[#151515] p-6 rounded-[3rem] border border-white/5 flex flex-col items-center cursor-pointer shadow-2xl hover:border-[#ff8c00] transition-all group active:scale-95">
                                         <div className="relative mb-6">
                                             <PhotoAvatar emp={emp} size={110} className="group-hover:scale-105 transition-transform duration-500" />
-                                            <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full border-[6px] border-[#151515] ${emp.status === 'In' ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-red-500 shadow-md'}`} />
+                                            <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full border-[6px] border-[#151515] ${emp.status === 'In' ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse' : emp.status === 'Break' ? 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'bg-red-500 shadow-md'}`} />
                                         </div>
                                         <p className="font-black text-sm uppercase italic tracking-tighter text-center leading-none text-white italic">{emp.name} {emp.surname}</p>
                                         <p className="text-[9px] text-gray-600 mt-3 font-black uppercase tracking-widest italic">{emp.role}</p>
@@ -347,7 +467,7 @@
                             </div>
                         )}
 
-                        {/* 2. ANALYTICS View */}
+                        {/* 2. ANALYTICS View with Holidays circled */}
                         {appMode === 'analytics' && !isLocked && (
                              <div className="animate-in slide-in-from-right-10 duration-500">
                                 <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
@@ -356,9 +476,13 @@
                                         <div className="flex items-center space-x-4 bg-black/40 px-6 py-3 rounded-full border border-white/5 shadow-inner">
                                             <Icon name="calendar" size={16} className="text-blue-500" />
                                             <div className="flex items-center space-x-2">
-                                                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none text-white w-28" />
-                                                <Icon name="arrow-right" size={12} className="text-gray-600" />
-                                                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent text-[10px] font-black uppercase outline-none text-white w-28" />
+                                                <span className={`text-[9px] font-black uppercase ${SA_HOLIDAYS[startDate] ? 'text-red-500' : 'text-gray-500'}`}>{SA_HOLIDAYS[startDate] || 'From'}</span>
+                                                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`text-[10px] outline-none w-32 text-center transition-all ${SA_HOLIDAYS[startDate] ? 'text-red-500 font-black scale-110 border-2 border-red-500 rounded-full py-1 bg-red-500/10' : 'bg-transparent text-white font-bold'}`} />
+                                                
+                                                <Icon name="arrow-right" size={12} className="text-gray-600 mx-2" />
+                                                
+                                                <span className={`text-[9px] font-black uppercase ${SA_HOLIDAYS[endDate] ? 'text-red-500' : 'text-gray-500'}`}>{SA_HOLIDAYS[endDate] || 'To'}</span>
+                                                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`text-[10px] outline-none w-32 text-center transition-all ${SA_HOLIDAYS[endDate] ? 'text-red-500 font-black scale-110 border-2 border-red-500 rounded-full py-1 bg-red-500/10' : 'bg-transparent text-white font-bold'}`} />
                                             </div>
                                         </div>
                                         <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl shadow-xl shadow-emerald-500/5"><Icon name="bar-chart-3" /></div>
@@ -372,18 +496,23 @@
                                                     <th className="px-4 py-6 text-center text-orange-500">Yesterday</th>
                                                     <th className="px-4 py-6 text-center text-emerald-500">Today (Live)</th>
                                                     <th className="px-4 py-6 text-center text-blue-500">Range Total</th>
-                                                    <th className="px-4 py-6 text-center text-purple-500">Monthly</th>
+                                                    <th className="px-4 py-6 text-center">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5 text-white italic">
                                                 {employees.map(emp => (
-                                                    <tr key={emp.id} className="hover:bg-white/5 transition-colors group">
+                                                    <tr key={emp.id} className={`hover:bg-white/5 transition-colors group ${emp.isArchived ? 'opacity-50' : ''}`}>
                                                         <td className="px-8 py-6 flex items-center space-x-4 text-left"><PhotoAvatar emp={emp} size={50} /><div><p className="font-black text-sm uppercase leading-none italic">{emp.name} {emp.surname}</p><p className="text-[9px] text-gray-600 font-bold mt-1 uppercase tracking-widest">{emp.role}</p></div></td>
-                                                        <td className="px-4 py-6 text-center"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${emp.status === 'In' ? 'bg-green-500/10 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : 'bg-red-500/10 text-red-500'}`}>{emp.status}</span></td>
+                                                        <td className="px-4 py-6 text-center"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${emp.isArchived ? 'bg-gray-500/10 text-gray-500' : emp.status === 'In' ? 'bg-green-500/10 text-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : emp.status === 'Break' ? 'bg-purple-500/10 text-purple-400' : 'bg-red-500/10 text-red-500'}`}>{emp.isArchived ? 'Archived' : emp.status}</span></td>
                                                         <td className="px-4 py-6 text-center font-mono font-black text-gray-400">{formatTime(calculateEmployeeHours(emp, 'yesterday'))}</td>
                                                         <td className="px-4 py-6 text-center font-mono font-black text-emerald-500">{formatTime(calculateEmployeeHours(emp, 'today'))}</td>
                                                         <td className="px-4 py-6 text-center font-mono font-black text-blue-500">{formatTime(calculateEmployeeHours(emp, 'custom', startDate, endDate))}</td>
-                                                        <td className="px-4 py-6 text-center font-mono font-black text-purple-500">{formatTime(emp.monthlyHours + (emp.status === 'In' ? (currentTime - new Date(emp.shiftStartTime)) / 3600000 : 0))}</td>
+                                                        <td className="px-4 py-6 text-center">
+                                                            <div className="flex justify-center space-x-2">
+                                                                <button onClick={() => handleExportPDF(emp)} className="p-3 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all" title="Export as PDF"><Icon name="file-down" size={16}/></button>
+                                                                {!emp.isArchived && <button onClick={async () => { await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(emp.id).update({ todayHours: 0, weeklyHours: 0, monthlyHours: 0 }); announce(`${emp.name}'s current counters cleared.`); }} className="p-3 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all" title="Reset Session Hours"><Icon name="refresh-cw" size={16}/></button>}
+                                                            </div>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -405,12 +534,17 @@
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {employees.map(emp => (
-                                            <div key={emp.id} className="bg-black/40 p-6 rounded-[2.5rem] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-all shadow-inner italic">
+                                            <div key={emp.id} className={`bg-black/40 p-6 rounded-[2.5rem] border border-white/5 flex items-center justify-between group hover:border-blue-500/30 transition-all shadow-inner italic ${emp.isArchived ? 'opacity-50' : ''}`}>
                                                 <div className="flex items-center space-x-5 text-left">
                                                     <PhotoAvatar emp={emp} size={70} />
                                                     <div>
                                                         <h3 className="font-black italic uppercase text-white leading-none italic">{emp.name} {emp.surname}</h3>
-                                                        <p className="text-[10px] text-blue-500 font-black uppercase mt-2">{emp.role}</p>
+                                                        <div className="flex items-center mt-2 space-x-2">
+                                                            <p className="text-[10px] text-blue-500 font-black uppercase">{emp.role}</p>
+                                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${emp.isArchived ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
+                                                                {emp.isArchived ? 'Inactive' : 'Active'}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-3">
@@ -424,9 +558,94 @@
                             </div>
                         )}
 
-                        {/* 4. EMPLOYEE PRIVATE HUB */}
+                        {/* 4. TIME OFF HR LOGS (Supervisor Hub) */}
+                        {appMode === 'hr' && !isLocked && (
+                            <div className="animate-in slide-in-from-right-10 duration-500">
+                                <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden mb-8">
+                                    <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
+                                        <h2 className="text-2xl font-black uppercase tracking-tighter">Active Time Off Logs</h2>
+                                        <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl"><Icon name="plane-takeoff" size={24}/></div>
+                                    </div>
+                                    <div className="p-8 space-y-6">
+                                        {employees.filter(e => e.status === 'Break').length === 0 && (
+                                            <p className="text-gray-600 font-black uppercase text-xs tracking-widest text-center py-8 italic">No artisans currently on mid-shift time off.</p>
+                                        )}
+                                        {employees.filter(e => e.status === 'Break').map(emp => (
+                                            <div key={emp.id} className="bg-purple-900/10 p-6 rounded-3xl border border-purple-500/20 flex justify-between items-center">
+                                                <div className="flex items-center space-x-4">
+                                                    <PhotoAvatar emp={emp} size={50} />
+                                                    <div>
+                                                        <p className="font-black text-sm uppercase text-white italic">{emp.name} {emp.surname}</p>
+                                                        <p className="text-[10px] text-purple-400 font-black uppercase mt-1 tracking-widest italic">Reason: {emp.currentBreakReason || 'Not Specified'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest mb-1 italic">Left At</p>
+                                                    <span className="px-4 py-2 bg-purple-500/20 text-purple-400 font-black text-[10px] rounded-full uppercase tracking-widest italic">{emp.lastClock}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
+                                    <div className="p-8 border-b border-white/5 bg-black/20 text-white italic">
+                                        <h2 className="text-xl font-black uppercase tracking-tighter text-gray-500">Standard Leave Balances</h2>
+                                    </div>
+                                    <div className="p-8 space-y-4">
+                                        {employees.filter(e => !e.isArchived).map(emp => (
+                                            <div key={emp.id} className="bg-black/40 p-4 rounded-3xl border border-white/5 flex justify-between items-center">
+                                                <div className="flex items-center space-x-4">
+                                                    <PhotoAvatar emp={emp} size={40} />
+                                                    <p className="font-black text-sm uppercase text-white italic">{emp.name} {emp.surname}</p>
+                                                </div>
+                                                <span className="text-gray-500 font-black text-[10px] uppercase tracking-widest italic">15 Days Available</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PAYROLL & ADVANCES (Supervisor Hub) */}
+                        {appMode === 'payroll' && !isLocked && (
+                            <div className="animate-in slide-in-from-right-10 duration-500">
+                                <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden mb-8">
+                                    <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
+                                        <h2 className="text-2xl font-black uppercase tracking-tighter">Payroll & Money Borrowed</h2>
+                                        <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl"><Icon name="banknote" size={24}/></div>
+                                    </div>
+                                    <div className="p-8 space-y-6">
+                                        {employees.filter(e => !e.isArchived).map(emp => {
+                                            const totalAdvances = (emp.advances || []).reduce((sum, adv) => sum + adv.amount, 0);
+                                            const rate = parseFloat(emp.hourlyRate) || 0;
+                                            const hrs = emp.weeklyHours || 0;
+                                            const gross = rate * hrs;
+                                            const net = gross - totalAdvances;
+                                            return (
+                                                <div key={emp.id} className="bg-black/40 p-6 rounded-3xl border border-white/5 flex justify-between items-center">
+                                                    <div className="flex items-center space-x-4">
+                                                        <PhotoAvatar emp={emp} size={50} />
+                                                        <div>
+                                                            <p className="font-black text-sm uppercase text-white italic">{emp.name} {emp.surname}</p>
+                                                            <p className="text-[10px] text-gray-500 font-black uppercase mt-1 tracking-widest italic">Rate: R{rate}/hr | Week: {hrs.toFixed(1)}h</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] font-black uppercase text-gray-500 tracking-widest mb-1 italic">Gross: R {gross.toLocaleString()}</p>
+                                                        {totalAdvances > 0 && <p className="text-[9px] font-black uppercase text-red-500 tracking-widest mb-1 italic">Borrowed: -R {totalAdvances.toLocaleString()}</p>}
+                                                        <p className="text-lg font-black text-emerald-500 italic mt-1">Net: R {net.toLocaleString()}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 5. EMPLOYEE PRIVATE HUB */}
                         {view === 'emp_home' && selectedEmployee && (
-                           <div className="max-w-4xl mx-auto p-12 bg-[#1a1a1a] rounded-[5rem] border border-white/5 shadow-2xl animate-in slide-in-from-bottom-20 duration-500">
+                           <div className="max-w-5xl mx-auto p-12 bg-[#1a1a1a] rounded-[5rem] border border-white/5 shadow-2xl animate-in slide-in-from-bottom-20 duration-500">
                                <div className="flex items-center gap-10 mb-16">
                                    <PhotoAvatar emp={selectedEmployee} size={160} className="border-4 border-[#ff8c00] shadow-2xl shadow-black/80" />
                                    <div className="flex-1">
@@ -435,24 +654,227 @@
                                    </div>
                                    <button onClick={() => setView('dashboard')} className="p-6 bg-white/5 rounded-full text-gray-500 hover:text-white transition-all active:scale-90"><Icon name="x" size={40}/></button>
                                </div>
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                   <button onClick={() => setView('scanning')} className="bg-black/60 p-16 rounded-[4rem] flex flex-col items-center gap-8 border-2 border-transparent hover:border-[#ff8c00] transition-all group active:scale-95 shadow-xl">
-                                       <div className="p-8 bg-[#ff8c00]/10 text-[#ff8c00] rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="clock" size={80} /></div>
-                                       <span className="font-black uppercase italic text-3xl tracking-widest text-white italic">Clocking</span>
+                               <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+                                   <button onClick={() => { setView('scanning'); setPendingAction('normal'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-[#ff8c00] transition-all group active:scale-95 shadow-xl">
+                                       <div className="p-8 bg-[#ff8c00]/10 text-[#ff8c00] rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="clock" size={60} /></div>
+                                       <span className="font-black uppercase italic text-xl tracking-widest text-white italic">Clocking</span>
                                    </button>
-                                   <button onClick={() => {setAppMode('hr'); setView('dashboard');}} className="bg-black/60 p-16 rounded-[4rem] flex flex-col items-center gap-8 border-2 border-transparent hover:border-indigo-500 transition-all group active:scale-95 shadow-xl">
-                                       <div className="p-8 bg-indigo-500/10 text-indigo-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="scale" size={80} /></div>
-                                       <span className="font-black uppercase italic text-3xl tracking-widest text-white italic">Compliance</span>
+                                   <button onClick={() => { setView('emp_time_off'); setTimeOffReason(''); setPendingAction('normal'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-purple-500 transition-all group active:scale-95 shadow-xl">
+                                       <div className="p-8 bg-purple-500/10 text-purple-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="plane-takeoff" size={60} /></div>
+                                       <span className="font-black uppercase italic text-xl tracking-widest text-white italic">Time Off</span>
+                                   </button>
+                                   <button onClick={() => { setView('emp_money_borrowed'); setBorrowAmount(''); setBorrowReason(''); setBorrowMethod(''); setCapturedBorrowPhoto(null); setPendingAction('normal'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-emerald-500 transition-all group active:scale-95 shadow-xl">
+                                       <div className="p-8 bg-emerald-500/10 text-emerald-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="banknote" size={60} /></div>
+                                       <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Money<br/>Borrowed</span>
+                                   </button>
+                                   <button onClick={() => { setPendingAction('archive'); setView('supervisor_approval'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
+                                       <div className="p-8 bg-red-500/10 text-red-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="archive" size={60} /></div>
+                                       <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Archive<br/>Profile</span>
                                    </button>
                                </div>
                            </div>
                         )}
 
-                        {/* 5. AUTO SCANNER & SECURITY (Taskbar Hidden) */}
+                        {/* 6. EMPLOYEE TIME OFF INPUT INTERFACE */}
+                        {view === 'emp_time_off' && selectedEmployee && (
+                            <div className="fixed inset-0 z-[150] bg-black/95 flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-20">
+                                <div className="w-full max-w-2xl bg-[#1a1a1a] p-10 rounded-[4rem] border border-white/10 shadow-2xl relative">
+                                    <button onClick={() => setView('emp_home')} className="absolute top-8 right-8 p-3 bg-white/5 rounded-full text-gray-500 hover:text-white transition-all"><Icon name="x" size={24}/></button>
+                                    
+                                    <div className="flex items-center gap-6 mb-8">
+                                        <div className="p-5 bg-purple-500/10 text-purple-400 rounded-3xl"><Icon name="plane-takeoff" size={40} /></div>
+                                        <div>
+                                            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-none">Time Off Request</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-2">{selectedEmployee.name} {selectedEmployee.surname}</p>
+                                        </div>
+                                    </div>
+
+                                    {selectedEmployee.status === 'In' ? (
+                                        <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 mb-8">
+                                            <label className="block text-[10px] font-black uppercase text-gray-500 mb-3 tracking-widest ml-2">Reason (Required for leaving)</label>
+                                            <textarea 
+                                                value={timeOffReason} 
+                                                onChange={e => setTimeOffReason(e.target.value)}
+                                                placeholder="E.g., Going to the bank, Lunch break, Doctor..."
+                                                className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-bold outline-none focus:border-purple-500 transition-all resize-none"
+                                                rows="2"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="bg-purple-900/10 p-6 rounded-[2rem] border border-purple-500/20 mb-8 text-center">
+                                            <p className="text-sm font-black text-purple-400 uppercase tracking-widest mb-2">You are currently on Time Off</p>
+                                            <p className="text-xs text-gray-400 font-bold italic">Click the button below to resume your standard workshop shift.</p>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <button 
+                                            onClick={() => { setPendingAction('time_off_out'); setView('supervisor_approval'); }}
+                                            disabled={selectedEmployee.status !== 'In' || !timeOffReason.trim()}
+                                            className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status === 'In' && timeOffReason.trim() ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+                                        >
+                                            <Icon name="arrow-right" size={24} />
+                                            Start Time Off
+                                        </button>
+                                        <button 
+                                            onClick={() => { setPendingAction('time_off_in'); setView('supervisor_approval'); }}
+                                            disabled={selectedEmployee.status === 'In'}
+                                            className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status !== 'In' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+                                        >
+                                            <Icon name="hard-hat" size={24} />
+                                            Return to Work
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 6B. EMPLOYEE MONEY BORROWED INTERFACE */}
+                        {view === 'emp_money_borrowed' && selectedEmployee && (
+                            <div className="fixed inset-0 z-[150] bg-black/95 flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-20">
+                                <div className="w-full max-w-2xl bg-[#1a1a1a] p-10 rounded-[4rem] border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                                    <button onClick={() => setView('emp_home')} className="absolute top-8 right-8 p-3 bg-white/5 rounded-full text-gray-500 hover:text-white transition-all"><Icon name="x" size={24}/></button>
+                                    
+                                    <div className="flex items-center gap-6 mb-8 mt-2">
+                                        <div className="p-5 bg-emerald-500/10 text-emerald-400 rounded-3xl"><Icon name="banknote" size={40} /></div>
+                                        <div>
+                                            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-none">Money Borrowed</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-2">{selectedEmployee.name} {selectedEmployee.surname}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 mb-8 space-y-6">
+                                        <div className="flex gap-6">
+                                            {/* Face Capture Section */}
+                                            <div className="w-1/3 flex flex-col gap-3">
+                                                <div className="aspect-square bg-black rounded-3xl border-2 border-white/10 overflow-hidden relative">
+                                                    {isBorrowCapturing ? <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" /> : capturedBorrowPhoto ? <img src={capturedBorrowPhoto} className="w-full h-full object-cover" /> : <div className="h-full flex flex-col items-center justify-center text-gray-600"><Icon name="camera" size={32} /><p className="mt-2 font-black text-[8px] uppercase tracking-widest text-center italic">Face Scan<br/>Required</p></div>}
+                                                </div>
+                                                {!capturedBorrowPhoto && !isBorrowCapturing && (
+                                                    <button onClick={() => { setIsBorrowCapturing(true); if(videoRef.current) navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => { streamRef.current = s; videoRef.current.srcObject = s; }); }} className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all italic">Start Camera</button>
+                                                )}
+                                                {isBorrowCapturing && (
+                                                    <button onClick={() => {
+                                                        const canvas = canvasRef.current; const video = videoRef.current;
+                                                        canvas.width = 320; canvas.height = 240;
+                                                        canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+                                                        setCapturedBorrowPhoto(canvas.toDataURL('image/jpeg', 0.6)); setIsBorrowCapturing(false);
+                                                        if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+                                                    }} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-black uppercase text-[10px] tracking-widest text-white shadow-xl transition-all italic">Capture</button>
+                                                )}
+                                                {capturedBorrowPhoto && (
+                                                    <button onClick={() => { setCapturedBorrowPhoto(null); setIsBorrowCapturing(true); if(videoRef.current) navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => { streamRef.current = s; videoRef.current.srcObject = s; }); }} className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all italic">Retake</button>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Inputs Section */}
+                                            <div className="w-2/3 space-y-4 flex flex-col justify-center">
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase text-gray-500 mb-2 tracking-widest ml-2 italic">Amount Request (R)</label>
+                                                    <input 
+                                                        type="number"
+                                                        value={borrowAmount} 
+                                                        onChange={e => setBorrowAmount(e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-full bg-black border border-white/10 rounded-2xl p-4 text-emerald-500 text-xl font-black outline-none focus:border-emerald-500 transition-all italic"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-black uppercase text-gray-500 mb-2 tracking-widest ml-2 italic">Reason</label>
+                                                    <input 
+                                                        type="text"
+                                                        value={borrowReason} 
+                                                        onChange={e => setBorrowReason(e.target.value)}
+                                                        placeholder="E.g., Transport..."
+                                                        className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-emerald-500 transition-all italic"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Dropdown Section */}
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase text-gray-500 mb-2 tracking-widest ml-2 italic">Method of Payment</label>
+                                            <select 
+                                                value={borrowMethod} 
+                                                onChange={e => setBorrowMethod(e.target.value)}
+                                                className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer italic"
+                                            >
+                                                <option value="" disabled>Select Payment Method...</option>
+                                                <option value="EFT">EFT</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Immediate Payment">Immediate Payment</option>
+                                            </select>
+                                        </div>
+
+                                        {borrowMethod === 'Immediate Payment' && (
+                                            <div className="bg-red-500/10 border border-red-500/50 rounded-2xl p-4 flex items-center gap-4 animate-in zoom-in-95">
+                                                <div className="p-2 bg-red-500/20 rounded-full text-red-500"><Icon name="shield-alert" size={20} /></div>
+                                                <p className="text-red-500 text-[11px] font-black uppercase tracking-widest leading-relaxed italic">Additional charges of R75 will be charged for immediate payments.</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button 
+                                        onClick={() => { setPendingAction('borrow_money'); setView('supervisor_approval'); }}
+                                        disabled={!borrowAmount || borrowAmount <= 0 || !borrowReason.trim() || !borrowMethod || !capturedBorrowPhoto}
+                                        className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all italic ${borrowAmount > 0 && borrowReason.trim() && borrowMethod && capturedBorrowPhoto ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+                                    >
+                                        Proceed to Supervisor Validation
+                                        <Icon name="arrow-right" size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 6C. EMPLOYEE ARCHIVE REASON INTERFACE */}
+                        {view === 'emp_archive_reason' && selectedEmployee && (
+                            <div className="fixed inset-0 z-[150] bg-black/95 flex flex-col items-center justify-center p-6 animate-in slide-in-from-bottom-20">
+                                <div className="w-full max-w-2xl bg-[#1a1a1a] p-10 rounded-[4rem] border border-red-500/30 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                                    <button onClick={() => setView('emp_home')} className="absolute top-8 right-8 p-3 bg-white/5 rounded-full text-gray-500 hover:text-white transition-all"><Icon name="x" size={24}/></button>
+                                    
+                                    <div className="flex items-center gap-6 mb-8 mt-2">
+                                        <div className="p-5 bg-red-500/10 text-red-400 rounded-3xl"><Icon name="archive" size={40} /></div>
+                                        <div>
+                                            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-none">Archive Employee</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mt-2">{selectedEmployee.name} {selectedEmployee.surname}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 mb-8 space-y-6">
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase text-gray-500 mb-2 tracking-widest ml-2 italic">Reason for Leaving</label>
+                                            <select 
+                                                value={archiveReason} 
+                                                onChange={e => setArchiveReason(e.target.value)}
+                                                className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-red-500 transition-all appearance-none cursor-pointer italic"
+                                            >
+                                                <option value="" disabled>Select Reason...</option>
+                                                <option value="Fired">Fired</option>
+                                                <option value="Deceased">Deceased</option>
+                                                <option value="Layed off">Layed off</option>
+                                                <option value="Quit">Quit</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => processArchive(selectedEmployee)}
+                                        disabled={!archiveReason}
+                                        className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all italic ${archiveReason ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+                                    >
+                                        Confirm Archive
+                                        <Icon name="arrow-right" size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 7. AUTO SCANNER & SECURITY (Taskbar Hidden) */}
                         {view === 'scanning' && selectedEmployee && (
                            <div className="fixed inset-0 z-[150] bg-black/98 flex flex-col items-center justify-center p-12 animate-in zoom-in">
                                <div className="w-full max-w-2xl aspect-square relative rounded-[5rem] overflow-hidden border-[20px] border-[#222] shadow-[0_0_150px_rgba(255,140,0,0.15)]">
-                                   <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover grayscale opacity-100 contrast-125" />
+                                   <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover grayscale opacity-100 contrast-125 scale-x-[-1]" />
                                    <div className="absolute inset-0 flex flex-col items-center justify-center p-10">
                                        <div className={`w-3/4 aspect-square border-4 rounded-[5rem] transition-all duration-700 ${scanComplete ? 'border-emerald-500 scale-105 shadow-[0_0_100px_rgba(16,185,129,0.3)]' : 'border-[#ff8c00] animate-pulse'}`}>
                                            <div className="absolute inset-0 opacity-10 flex items-center justify-center"><Icon name="fingerprint" size={200}/></div>
@@ -465,6 +887,7 @@
                            </div>
                         )}
 
+                        {/* VIEW: PERSONAL PIN ENTRY */}
                         {view === 'personal_pin_entry' && selectedEmployee && (
                            <div className="fixed inset-0 z-[200] bg-[#0c0c0c] flex flex-col items-center justify-center animate-in slide-in-from-bottom-20">
                                <div className="bg-[#151515] p-12 rounded-[5rem] border border-white/10 text-center w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.8)]">
@@ -478,23 +901,54 @@
                                    </div>
                                    <div className="grid grid-cols-3 gap-4">
                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
-                                           <button key={n} onClick={() => n === 'X' ? setView('emp_home') : n === 'C' ? setPersonalPinInput('') : handlePersonalPinDigit(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white active:bg-blue-600 transition-all">{n}</button>
+                                           <button key={n} onClick={() => n === 'X' ? setView('emp_home') : n === 'C' ? setPersonalPinInput('') : handlePersonalPinDigit(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all active:bg-blue-600">{n}</button>
                                        ))}
                                    </div>
                                </div>
                            </div>
                         )}
 
+                        {/* VIEW: SUPERVISOR APPROVAL FOR TIME OFF, ADVANCES & ARCHIVE */}
+                        {view === 'supervisor_approval' && selectedEmployee && (
+                           <div className="fixed inset-0 z-[200] bg-[#0c0c0c] flex flex-col items-center justify-center animate-in slide-in-from-bottom-20 italic">
+                               <div className={`bg-[#151515] p-12 rounded-[5rem] border ${pendingAction === 'borrow_money' ? 'border-emerald-500/30' : pendingAction === 'archive' ? 'border-red-500/30' : 'border-purple-500/30'} text-center w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.8)]`}>
+                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit italic ${supervisorApprovalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : pendingAction === 'borrow_money' ? 'bg-emerald-500/10 text-emerald-500 shadow-xl shadow-emerald-500/10' : pendingAction === 'archive' ? 'bg-red-500/10 text-red-500 shadow-xl shadow-red-500/10' : 'bg-purple-500/10 text-purple-500 shadow-xl shadow-purple-500/10'}`}>
+                                       <Icon name="lock" size={60} />
+                                   </div>
+                                   <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-1 text-white italic text-center">Supervisor Approval</h2>
+                                   <p className="text-gray-500 text-[11px] font-black uppercase mb-12 tracking-widest italic">{pendingAction === 'borrow_money' ? 'Money Borrowed:' : pendingAction === 'archive' ? 'Archive Profile:' : 'Time Off:'} {selectedEmployee.name} {selectedEmployee.surname}</p>
+                                   <div className="flex justify-center space-x-6 mb-16">
+                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${supervisorApprovalPinInput.length >= i ? (supervisorApprovalPinError ? 'bg-red-500' : pendingAction === 'borrow_money' ? 'bg-emerald-500 shadow-[0_0_20px_#10b981]' : pendingAction === 'archive' ? 'bg-red-500 shadow-[0_0_20px_#ef4444]' : 'bg-purple-500 shadow-[0_0_20px_#a855f7]') : 'bg-white/5'}`} />)}
+                                   </div>
+                                   <div className="grid grid-cols-3 gap-4">
+                                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
+                                           <button key={n} onClick={() => {
+                                               if (n === 'X') {
+                                                   setView(pendingAction === 'borrow_money' ? 'emp_money_borrowed' : pendingAction === 'archive' ? 'emp_home' : 'emp_time_off');
+                                                   setSupervisorApprovalPinInput('');
+                                               } else if (n === 'C') {
+                                                   setSupervisorApprovalPinInput('');
+                                               } else {
+                                                   handleSupervisorApprovalDigit(n.toString());
+                                               }
+                                           }} className={`h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all ${pendingAction === 'borrow_money' ? 'active:bg-emerald-600' : pendingAction === 'archive' ? 'active:bg-red-600' : 'active:bg-purple-600'}`}>{n}</button>
+                                       ))}
+                                   </div>
+                               </div>
+                           </div>
+                        )}
+
+                        {/* VIEW: SUCCESS SCREEN */}
                         {view === 'success_screen' && selectedEmployee && (
                              <div className="fixed inset-0 z-[500] bg-black/95 flex flex-col items-center justify-center p-12 text-center animate-in fade-in">
-                                <div className={`w-64 h-64 rounded-full border-[15px] p-2 shadow-2xl mb-12 overflow-hidden ${lastClockResult === 'In' ? 'border-emerald-500 shadow-emerald-500/30' : 'border-red-500 shadow-red-500/30'}`}>
-                                    <PhotoAvatar emp={selectedEmployee} size="100%" className="border-0 rounded-full shadow-none" />
+                                <div className={`w-64 h-64 rounded-full border-[15px] p-2 shadow-2xl mb-12 overflow-hidden ${lastClockResult === 'In' ? 'border-emerald-500 shadow-emerald-500/30' : lastClockResult === 'Break' ? 'border-purple-500 shadow-purple-500/30' : 'border-red-500 shadow-red-500/30'}`}>
+                                    <PhotoAvatar emp={selectedEmployee} size="100%" className="border-0 rounded-full shadow-none shadow-inner" />
                                 </div>
                                 <h2 className="text-8xl font-black italic uppercase tracking-tighter text-white mb-4 leading-none italic text-center italic">IDENTITY VERIFIED</h2>
                                 <p className="text-3xl font-black text-gray-500 uppercase tracking-widest mb-16 italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
-                                <div className={`bg-[#151515] w-full max-w-md p-14 rounded-[5rem] text-center border-b-[16px] shadow-2xl ${lastClockResult === 'In' ? 'border-emerald-500' : 'border-red-500'}`}>
-                                   <p className={`text-9xl font-mono font-black italic uppercase leading-none ${lastClockResult === 'In' ? 'text-green-500' : 'text-red-500'}`}>
-                                       {lastClockResult === 'In' ? 'IN' : 'OUT'}
+                                <div className={`bg-[#151515] w-full max-w-md p-14 rounded-[5rem] text-center border-b-[16px] shadow-2xl ${lastClockResult === 'In' ? 'border-emerald-500' : lastClockResult === 'Break' ? 'border-purple-500' : 'border-red-500'}`}>
+                                   <p className={`text-9xl font-mono font-black italic uppercase leading-none ${lastClockResult === 'In' ? 'text-green-500' : lastClockResult === 'Break' ? 'text-purple-500' : 'text-red-500'}`}>
+                                       {lastClockResult === 'In' ? 'IN' : lastClockResult === 'Break' ? 'TIME OFF' : 'OUT'}
                                    </p>
                                 </div>
                              </div>
@@ -513,7 +967,7 @@
                                     <form onSubmit={handleEnrollSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                                         <div className="space-y-10">
                                             <div className="aspect-square bg-black rounded-[4rem] border-4 border-white/5 overflow-hidden relative shadow-inner">
-                                                {isCapturing ? <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" /> : capturedPhoto ? <img src={capturedPhoto} className="w-full h-full object-cover" /> : <div className="h-full flex flex-col items-center justify-center text-gray-800"><Icon name="id-card" size={100} /><p className="mt-4 font-black uppercase text-[11px] tracking-widest italic">Awaiting Capture</p></div>}
+                                                {isCapturing ? <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" /> : capturedPhoto ? <img src={capturedPhoto} className="w-full h-full object-cover" /> : <div className="h-full flex flex-col items-center justify-center text-gray-800"><Icon name="id-card" size={100} /><p className="mt-4 font-black uppercase text-[11px] tracking-widest italic">Awaiting Capture</p></div>}
                                                 <div className="absolute bottom-8 inset-x-8 flex gap-4">
                                                     <button type="button" onClick={() => setIsCapturing(true)} className="flex-1 py-5 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-white/10 transition-all italic">Open Camera</button>
                                                     {isCapturing && <button type="button" onClick={capturePhoto} className="p-5 bg-emerald-600 rounded-2xl active:scale-90 transition-all shadow-xl"><Icon name="camera" size={28}/></button>}
@@ -523,7 +977,7 @@
                                         <div className="grid grid-cols-2 gap-8 h-fit">
                                             <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">First Name</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white" value={enrollForm.name} onChange={e => setEnrollForm({...enrollForm, name: e.target.value})} /></div>
                                             <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Surname</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white" value={enrollForm.surname} onChange={e => setEnrollForm({...enrollForm, surname: e.target.value})} /></div>
-                                            <div className="col-span-2 space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Address</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.address} onChange={e => setEnrollForm({...enrollForm, address: e.target.value})} /></div>
+                                            <div className="col-span-2 space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Residential Address</label><input required className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 font-bold outline-none focus:border-blue-500 transition-all text-white" value={enrollForm.address} onChange={e => setEnrollForm({...enrollForm, address: e.target.value})} /></div>
                                             <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">ID Number</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-mono text-white" value={enrollForm.idNumber} onChange={e => setEnrollForm({...enrollForm, idNumber: e.target.value})} /></div>
                                             <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact No</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.contactNumber} onChange={e => setEnrollForm({...enrollForm, contactNumber: e.target.value})} /></div>
                                             <div className="space-y-2"><label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Tax Number</label><input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold text-white" value={enrollForm.taxNumber} onChange={e => setEnrollForm({...enrollForm, taxNumber: e.target.value})} /></div>
@@ -558,8 +1012,8 @@
                     )}
 
                     {!hideTaskbar && (
-                        <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/10 flex items-center space-x-3 shadow-2xl z-[200] scale-90 md:scale-100 transition-all animate-in slide-in-from-bottom-5">
-                            <NavItem icon="layout-dashboard" tooltip="Workshop Dashboard" active={appMode === 'employee'} colorClass="bg-[#ff8c00] text-white shadow-lg shadow-[#ff8c00]/20" onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); setSelectedAnalyticsEmployee(null); }} />
+                        <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/10 flex items-center space-x-3 shadow-2xl z-[200] scale-90 md:scale-100 transition-all animate-in slide-in-from-bottom-5 no-print">
+                            <NavItem icon="layout-dashboard" tooltip="Workshop Dashboard" active={appMode === 'employee'} colorClass="bg-[#ff8c00] text-white shadow-lg shadow-[#ff8c00]/20" onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
                             <div className="w-[1px] h-10 bg-white/10 mx-2" />
                             <NavItem icon={isLocked ? "lock" : "unlock"} tooltip="Access Management Hub" active={!isLocked} colorClass="text-blue-500 bg-blue-500/10 shadow-[0_0_30px_#3b82f622]" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
                             {!isLocked && (
@@ -567,7 +1021,7 @@
                                     <NavItem icon="users" tooltip="Staff Registry & Enrollment" active={appMode === 'admin'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('admin'); setView('dashboard'); }} />
                                     <NavItem icon="bar-chart-3" tooltip="Labor & Work Analytics" active={appMode === 'analytics'} colorClass="bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" onClick={() => { setAppMode('analytics'); setView('dashboard'); }} />
                                     <NavItem icon="banknote" tooltip="Payroll Processing" active={appMode === 'payroll'} colorClass="bg-amber-500 text-white shadow-lg shadow-amber-500/20" onClick={() => setAppMode('payroll')} />
-                                    <NavItem icon="scale" tooltip="Compliance Node" active={appMode === 'hr'} colorClass="bg-purple-600 text-white shadow-lg shadow-purple-600/20" onClick={() => setAppMode('hr')} />
+                                    <NavItem icon="scale" tooltip="Time Off Node" active={appMode === 'hr'} colorClass="bg-purple-600 text-white shadow-lg shadow-purple-600/20" onClick={() => setAppMode('hr')} />
                                     <NavItem icon="smartphone" tooltip="Mobile Deployment" active={appMode === 'mobile'} colorClass="bg-pink-600 text-white shadow-lg shadow-pink-600/20" onClick={() => setAppMode('mobile')} />
                                 </div>
                             )}
@@ -575,19 +1029,118 @@
                     )}
 
                     {showPinModal && (
-                        <div className="fixed inset-0 z-[900] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in">
-                            <div className="bg-[#151515] p-12 rounded-[5rem] text-center border border-white/10 w-full max-w-sm shadow-2xl">
+                        <div className="fixed inset-0 z-[900] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in no-print">
+                            <div className="bg-[#151515] p-12 rounded-[5rem] text-center border border-white/10 w-full max-w-sm shadow-2xl italic">
                                 <div className="p-6 bg-blue-500/10 text-blue-500 rounded-full w-fit mx-auto mb-8 shadow-inner"><Icon name="shield-alert" size={54} /></div>
-                                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 mb-12 italic italic text-center italic">Supervisor Access Required</p>
+                                <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500 mb-12 italic italic text-center">Supervisor Access Required</p>
                                 <div className="grid grid-cols-3 gap-4">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
-                                        <button key={n} onClick={() => n === 'X' ? setShowPinModal(false) : n === 'C' ? setPinInput('') : handleAdminPin(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white active:bg-blue-600 transition-all">{n}</button>
+                                        <button key={n} onClick={() => n === 'X' ? setShowPinModal(false) : n === 'C' ? setPinInput('') : handleAdminPin(n.toString())} className="h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black active:bg-blue-600 transition-all text-white">{n}</button>
                                     ))}
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
+
+                {/* --- HARDCOPY PRINT ENGINE OVERLAY --- */}
+                {printingEmployee && (
+                    <div className="bg-white text-black p-12 font-sans absolute inset-0 z-[9999] min-h-screen not-italic">
+                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200">
+                            💡 Hint: To export as PDF, select "Save as PDF" in your browser's Print dialog destination.
+                        </div>
+                        <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end">
+                            <div>
+                                <h1 className="text-4xl font-black uppercase tracking-tighter">TimberSmith Joinery</h1>
+                                <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mt-1">Labor Archive Summary</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="font-bold">Date Printed: {getLocalDateString(new Date())}</p>
+                                <p className="text-sm text-gray-500">Period: {startDate} to {endDate}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-8 mb-8 border border-gray-300 p-6 rounded-2xl">
+                            <div>
+                                <p className="text-xs font-bold uppercase text-gray-500">Artisan Details</p>
+                                <p className="text-2xl font-black uppercase mt-1">{printingEmployee.name} {printingEmployee.surname}</p>
+                                <p className="text-sm font-bold mt-1 text-blue-600">{printingEmployee.role} {printingEmployee.isArchived && <span className="text-red-500 ml-2">(ARCHIVED)</span>}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold uppercase text-gray-500 mb-2">Identification & Rate</p>
+                                <p className="text-sm"><strong>ID Number:</strong> {printingEmployee.idNumber || 'N/A'}</p>
+                                <p className="text-sm"><strong>Contact:</strong> {printingEmployee.contactNumber || 'N/A'}</p>
+                                <p className="text-sm"><strong>Agreed Rate:</strong> R {printingEmployee.hourlyRate || '0'}/hr</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-8">
+                            <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Hours Verification Summary</h3>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-gray-100 p-4 rounded-xl text-center">
+                                    <p className="text-xs font-bold uppercase text-gray-500">Selected Range Total</p>
+                                    <p className="text-2xl font-black text-blue-600">{formatTime(calculateEmployeeHours(printingEmployee, 'custom', startDate, endDate))}</p>
+                                </div>
+                                <div className="bg-gray-100 p-4 rounded-xl text-center">
+                                    <p className="text-xs font-bold uppercase text-gray-500">Monthly Accumulation</p>
+                                    <p className="text-2xl font-black text-purple-600">{formatTime(printingEmployee.monthlyHours)}</p>
+                                </div>
+                                <div className="bg-gray-100 p-4 rounded-xl text-center">
+                                    <p className="text-xs font-bold uppercase text-gray-500">Estimated Range Gross</p>
+                                    <p className="text-2xl font-black text-emerald-600">R {(calculateEmployeeHours(printingEmployee, 'custom', startDate, endDate) * (parseFloat(printingEmployee.hourlyRate) || 0)).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-12">
+                            <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Itemized Shift History (Selected Period)</h3>
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-100 text-xs uppercase tracking-widest">
+                                        <th className="p-3 border border-gray-300 font-bold">Date of Shift</th>
+                                        <th className="p-3 border border-gray-300 font-bold text-center">Calculated Hours</th>
+                                        <th className="p-3 border border-gray-300 font-bold">System Designation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(printingEmployee.history || [])
+                                        .filter(h => h.date >= startDate && h.date <= endDate)
+                                        .sort((a,b) => a.date > b.date ? 1 : -1)
+                                        .map((h, i) => (
+                                        <tr key={i}>
+                                            <td className="p-3 border border-gray-300">{h.date}</td>
+                                            <td className="p-3 border border-gray-300 font-mono font-bold text-center">{formatTime(h.hours)}</td>
+                                            <td className="p-3 border border-gray-300 text-gray-500 text-xs">Standard Workshop Shift</td>
+                                        </tr>
+                                    ))}
+                                    {(printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate).length === 0 && (
+                                        <tr><td colSpan="3" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {printingEmployee.isArchived && (
+                            <div className="mb-12">
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-red-600">Archival Record</h3>
+                                <p className="text-sm"><strong>Archived On:</strong> {printingEmployee.archiveDate}</p>
+                                <p className="text-sm text-red-600 font-bold"><strong>Reason:</strong> {printingEmployee.archiveReason}</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-16 mt-20 pt-8">
+                            <div className="text-center">
+                                <div className="border-b border-black mb-2 h-10"></div>
+                                <p className="text-xs font-bold uppercase text-gray-500">Artisan Authorized Signature</p>
+                            </div>
+                            <div className="text-center">
+                                <div className="border-b border-black mb-2 h-10"></div>
+                                <p className="text-xs font-bold uppercase text-gray-500">Supervisor Authorized Signature</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                </Fragment>
             );
         };
 
