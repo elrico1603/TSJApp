@@ -70,6 +70,12 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Safe Date Formatter helper
+        const getLocalDateString = (date) => {
+            const d = new Date(date);
+            return d.toISOString().split('T')[0];
+        };
+
         const announce = (text) => {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -191,7 +197,6 @@
             const calculateEmployeeHours = (emp, mode = 'today', startRange = null, endRange = null) => {
                 let total = 0;
                 const history = emp.history || [];
-                const shifts = emp.shifts || [];
                 const now = new Date();
                 const todayStr = now.toISOString().split('T')[0];
                 const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
@@ -341,7 +346,6 @@
             const notifyHR = async (subject, htmlBody) => {
                 if (!isCloudLive) return;
                 try {
-                    // 👉 CHANGE THIS TO HR'S ACTUAL EMAIL ADDRESS
                     const hrEmail = "janah@tsjoinery.co.za"; 
                     
                     await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('mail').add({
@@ -374,7 +378,7 @@
                     const baseAmount = parseFloat(borrowAmount) || 0;
                     const fee = borrowMethod === 'Immediate Payment' ? 75 : 0;
                     const totalAmount = baseAmount + fee;
-                    const dateStr = new Date().toISOString().split('T')[0]; // FIX applied here
+                    const dateStr = getLocalDateString(new Date());
                     
                     const advance = { 
                         id: Date.now().toString() + Math.floor(Math.random()*1000).toString(),
@@ -445,7 +449,7 @@
                     setPersonalPinInput('');
                     setSupervisorApprovalPinInput('');
 
-                    const dateStr = new Date().toISOString().split('T')[0]; // FIX applied here
+                    const dateStr = getLocalDateString(new Date());
                     announce(`${emp.name} has been formally archived.`);
                     
                     setEmployees(prev => prev.map(e => e.id === emp.id ? { ...emp, isArchived: true, archiveReason: archiveReason, status: 'Archived' } : e));
@@ -495,8 +499,31 @@
 
                     if (newStatus === 'Break') {
                         updateData.currentBreakReason = timeOffReason;
+                        
+                        let breaks = [...(emp.breaks || [])];
+                        breaks.push({
+                            id: Date.now().toString(),
+                            date: getLocalDateString(clockTime),
+                            leftAt: clockTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            returnedAt: null,
+                            reason: timeOffReason
+                        });
+                        updateData.breaks = breaks;
                     } else if (newStatus === 'In') {
                         updateData.currentBreakReason = null;
+                        
+                        if (pendingAction === 'time_off_in') {
+                            let breaks = [...(emp.breaks || [])];
+                            if (breaks.length > 0) {
+                                const lastBreakIdx = breaks.map(b => b.returnedAt).lastIndexOf(null);
+                                if (lastBreakIdx > -1) {
+                                    breaks[lastBreakIdx] = { ...breaks[lastBreakIdx], returnedAt: clockTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+                                } else {
+                                    breaks[breaks.length - 1] = { ...breaks[breaks.length - 1], returnedAt: clockTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+                                }
+                            }
+                            updateData.breaks = breaks;
+                        }
                     }
 
                     if (newStatus === 'In') {
@@ -504,7 +531,7 @@
                     } else {
                         const startTime = new Date(emp.shiftStartTime || clockTime);
                         const shiftHours = parseFloat(((clockTime - startTime) / 3600000).toFixed(2));
-                        const todayStr = clockTime.toISOString().split('T')[0];
+                        const todayStr = getLocalDateString(clockTime);
                         
                         let history = [...(emp.history || [])]; 
                         const existingToday = history.findIndex(h => h.date === todayStr);
@@ -557,7 +584,7 @@
                 const profileData = { ...enrollForm, photo: capturedPhoto };
                 if (isCloudLive) try {
                     if (isEditing) await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').doc(editingId).update(profileData);
-                    else await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').add({ ...profileData, status: 'Out', isArchived: false, todayHours: 0, yesterdayHours: 0, weeklyHours: 0, monthlyHours: 0, history: [], shifts: [] });
+                    else await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees').add({ ...profileData, status: 'Out', isArchived: false, todayHours: 0, yesterdayHours: 0, weeklyHours: 0, monthlyHours: 0, history: [], shifts: [], breaks: [] });
                     setShowEnrollModal(false); setIsEditing(false); setEditingId(null);
                     setEnrollForm({ name: '', surname: '', address: '', idNumber: '', taxNumber: '', uifNumber: '', contactNumber: '', personalCode: '', hourlyRate: '0' });
                     setCapturedPhoto(null);
@@ -644,9 +671,9 @@
                             </div>
                         )}
 
-                        {/* 2. ANALYTICS View with Holidays circled */}
+                        {/* 2. ANALYTICS View */}
                         {appMode === 'analytics' && !isLocked && (
-                             <div className="animate-in slide-in-from-right-10 duration-500">
+                             <div className="animate-in duration-500">
                                 <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
                                     <div className="p-8 border-b border-white/5 bg-black/20 flex items-center justify-between text-white italic">
                                         <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white italic">Labor Analysis Hub</h2>
@@ -701,7 +728,7 @@
 
                         {/* 3. STAFF REGISTRY (Admin Node) */}
                         {appMode === 'admin' && !isLocked && (
-                             <div className="animate-in slide-in-from-right-10 p-4">
+                             <div className="animate-in p-4">
                                 <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden p-8">
                                     <div className="flex justify-between items-center mb-8 italic text-white">
                                         <h2 className="text-2xl font-black uppercase italic tracking-tighter">Artisan Registry</h2>
@@ -789,7 +816,7 @@
 
                         {/* 4. TIME OFF HR LOGS (Supervisor Hub) */}
                         {appMode === 'hr' && !isLocked && (
-                            <div className="animate-in slide-in-from-right-10 duration-500">
+                            <div className="animate-in duration-500">
                                 <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden mb-8">
                                     <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
                                         <h2 className="text-2xl font-black uppercase tracking-tighter">Active Time Off Logs</h2>
@@ -837,7 +864,7 @@
 
                         {/* PAYROLL & ADVANCES (Supervisor Hub) */}
                         {appMode === 'payroll' && !isLocked && (
-                            <div className="animate-in slide-in-from-right-10 duration-500">
+                            <div className="animate-in duration-500">
                                 <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden mb-8">
                                     <div className="p-8 border-b border-white/5 bg-black/20 flex justify-between items-center text-white italic">
                                         <h2 className="text-2xl font-black uppercase tracking-tighter">Payroll & Money Borrowed</h2>
@@ -876,9 +903,78 @@
                             </div>
                         )}
 
+                        {/* 4B. MOBILE DEPLOYMENT HUB (QR CODE) */}
+                        {appMode === 'mobile' && !isLocked && (
+                            <div className="animate-in slide-in-from-right-10 duration-500 max-w-4xl mx-auto">
+                                <div className="bg-[#1a1a1a] rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden p-10 text-center">
+                                    <div className="flex flex-col items-center justify-center space-y-6">
+                                        <div className="p-5 bg-pink-500/10 text-pink-500 rounded-3xl animate-bounce"><Icon name="smartphone" size={48} /></div>
+                                        <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Mobile Deployment Hub</h2>
+                                        <p className="text-sm text-gray-400 max-w-xl mx-auto italic">
+                                            Deploy the TimberSmith Artisan App directly to carpenters' and workers' smartphones. Let them track hours, request advances, and view shifts on the move.
+                                        </p>
+
+                                        <div className="my-8 bg-white p-6 rounded-[2.5rem] inline-block shadow-2xl border-4 border-[#ff8c00]/20">
+                                            <img 
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(APP_MOBILE_LINK)}`} 
+                                                alt="Scan to Install App" 
+                                                className="w-48 h-48 md:w-56 md:h-56 object-contain"
+                                                onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/250x250?text=Scan+QR+Code"; }}
+                                            />
+                                        </div>
+
+                                        <div className="flex flex-col items-center space-y-3 w-full max-w-md">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Or share the direct installation URL</p>
+                                            <div className="flex w-full bg-black/40 rounded-2xl border border-white/5 overflow-hidden">
+                                                <input 
+                                                    type="text" 
+                                                    readOnly 
+                                                    value={APP_MOBILE_LINK} 
+                                                    className="flex-1 bg-transparent px-4 py-3 text-xs font-mono text-gray-300 outline-none"
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const el = document.createElement('textarea');
+                                                        el.value = APP_MOBILE_LINK;
+                                                        document.body.appendChild(el);
+                                                        el.select();
+                                                        document.execCommand('copy');
+                                                        document.body.removeChild(el);
+                                                        announce("Link copied to clipboard");
+                                                    }}
+                                                    className="bg-pink-600 hover:bg-pink-500 text-white px-5 py-3 font-black text-xs uppercase tracking-wider transition-colors"
+                                                >
+                                                    Copy Link
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full pt-10 border-t border-white/5 mt-10 text-left">
+                                            <div className="bg-black/30 p-6 rounded-3xl border border-white/5">
+                                                <span className="text-pink-500 font-mono font-black text-lg">01</span>
+                                                <h4 className="font-black uppercase text-sm mt-2 text-white italic">Scan QR Code</h4>
+                                                <p className="text-xs text-gray-500 mt-2 leading-relaxed">Open the native camera app on Android or iOS and point it at the QR code above.</p>
+                                            </div>
+                                            <div className="bg-black/30 p-6 rounded-3xl border border-white/5">
+                                                <span className="text-pink-500 font-mono font-black text-lg">02</span>
+                                                <h4 className="font-black uppercase text-sm mt-2 text-white italic">Install as App</h4>
+                                                <p className="text-xs text-gray-500 mt-2 leading-relaxed">Tap "Add to Home Screen" or install when prompted by Chrome/Safari to save it as a native app.</p>
+                                            </div>
+                                            <div className="bg-black/30 p-6 rounded-3xl border border-white/5">
+                                                <span className="text-pink-500 font-mono font-black text-lg">03</span>
+                                                <h4 className="font-black uppercase text-sm mt-2 text-white italic">Sync Terminal</h4>
+                                                <p className="text-xs text-gray-500 mt-2 leading-relaxed">Open the app on your phone and input your workshop artisan terminal code to sync database records.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* 5. EMPLOYEE PRIVATE HUB */}
                         {view === 'emp_home' && selectedEmployee && (
-                           <div className="max-w-5xl mx-auto p-12 bg-[#1a1a1a] rounded-[5rem] border border-white/5 shadow-2xl animate-in slide-in-from-bottom-20 duration-500">
+                           <div className="max-w-5xl mx-auto p-12 bg-[#1a1a1a] rounded-[5rem] border border-white/5 shadow-2xl animate-in slide-in-from-bottom-20 duration-500 font-sans">
                                <div className="flex items-center gap-10 mb-16">
                                    <PhotoAvatar emp={selectedEmployee} size={160} className="border-4 border-[#ff8c00] shadow-2xl shadow-black/80" />
                                    <div className="flex-1">
@@ -1366,7 +1462,8 @@
                                 </div>
                             </div>
 
-                            <div className="mb-12">
+                            {/* Section 1: Itemized Shift & Clocking History */}
+                            <div className="mb-8">
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Itemized Shift & Clocking History</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
@@ -1404,6 +1501,74 @@
 
                                         {((printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate).length === 0 && (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate).length === 0) && (
                                             <tr><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Section 2: Money Borrowed / Cash Advances (Added as requested) */}
+                            <div className="mb-8">
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-emerald-600">Money Borrowed / Advances</h3>
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
+                                            <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
+                                            <th className="p-3 border border-gray-300 font-bold text-center">Amount Requested</th>
+                                            <th className="p-3 border border-gray-300 font-bold text-center">Repayment Terms</th>
+                                            <th className="p-3 border border-gray-300 font-bold text-center">Payment Status</th>
+                                            <th className="p-3 border border-gray-300 font-bold">Reason Given</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(printingEmployee.advances || [])
+                                            .filter(a => a.date >= startDate && a.date <= endDate)
+                                            .sort((a,b) => a.date > b.date ? 1 : -1)
+                                            .map((a, i) => (
+                                            <tr key={i}>
+                                                <td className="p-3 border border-gray-300">{a.date}</td>
+                                                <td className="p-3 border border-gray-300 text-center font-mono font-bold text-emerald-600">R {a.amount.toLocaleString()}</td>
+                                                <td className="p-3 border border-gray-300 text-center">{a.months} Month(s)</td>
+                                                <td className="p-3 border border-gray-300 text-center font-bold text-xs">
+                                                    <span className={a.paidInFull ? 'text-emerald-500' : 'text-red-500'}>
+                                                        {a.paidInFull ? 'Paid In Full' : 'Outstanding'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 border border-gray-300 text-gray-600 italic text-sm">{a.reason}</td>
+                                            </tr>
+                                        ))}
+                                        {(!printingEmployee.advances || printingEmployee.advances.filter(a => a.date >= startDate && a.date <= endDate).length === 0) && (
+                                            <tr><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Section 3: Time Off & Breaks History (Added as requested) */}
+                            <div className="mb-8">
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-purple-600">Time Off / Mid-Shift Breaks</h3>
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
+                                            <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
+                                            <th className="p-3 border border-gray-300 font-bold text-center">Departure (Left)</th>
+                                            <th className="p-3 border border-gray-300 font-bold text-center">Return (Returned)</th>
+                                            <th className="p-3 border border-gray-300 font-bold">Reason Logged</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(printingEmployee.breaks || [])
+                                            .filter(b => b.date >= startDate && b.date <= endDate)
+                                            .sort((a,b) => a.date > b.date ? 1 : -1)
+                                            .map((b, i) => (
+                                            <tr key={i}>
+                                                <td className="p-3 border border-gray-300">{b.date}</td>
+                                                <td className="p-3 border border-gray-300 text-center font-mono">{b.leftAt}</td>
+                                                <td className="p-3 border border-gray-300 text-center font-mono">{b.returnedAt || 'On-Going Break'}</td>
+                                                <td className="p-3 border border-gray-300 text-gray-600 italic text-sm">{b.reason}</td>
+                                            </tr>
+                                        ))}
+                                        {(!printingEmployee.breaks || printingEmployee.breaks.filter(b => b.date >= startDate && b.date <= endDate).length === 0) && (
+                                            <tr><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
