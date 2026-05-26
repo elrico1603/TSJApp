@@ -115,9 +115,7 @@
                 'plane-takeoff': <Fragment><path d="M2 22 12 2l10 20Z"/><path d="M6 18h12"/></Fragment>,
                 'archive': <Fragment><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></Fragment>,
                 'file-text': <Fragment><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></Fragment>,
-                'check-circle': <Fragment><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Fragment>,
-                'home': <Fragment><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Fragment>,
-                'kanban': <Fragment><path d="M4 4h4v16H4z"/><path d="M10 4h4v10h-4z"/><path d="M16 4h4v14h-4z"/></Fragment>
+                'check-circle': <Fragment><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Fragment>
             };
             return (
                 <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -130,23 +128,13 @@
             const [employees, setEmployees] = useState([]);
             const [isCloudLive, setIsCloudLive] = useState(false);
             const [currentTime, setCurrentTime] = useState(new Date());
-            
-            // Core Navigation State
-            const [appMode, setAppMode] = useState('home'); 
+            const [appMode, setAppMode] = useState('employee'); 
             const [isLocked, setIsLocked] = useState(true); 
             const [showPinModal, setShowPinModal] = useState(false);
             const [pinInput, setPinInput] = useState('');
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
             
-            // Kanban State
-            const [kanbanCards, setKanbanCards] = useState([]);
-            const [showCardEditor, setShowCardEditor] = useState(false);
-            const initialCardForm = { title: '', location: '', partNo: '', supplierPartNo: '', usedFor: '', supplier: '', orderWhen: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '' };
-            const [cardForm, setCardForm] = useState(initialCardForm);
-            const [printingCard, setPrintingCard] = useState(null);
-            const [kanbanEditingId, setKanbanEditingId] = useState(null);
-
             // Clocking & Actions State
             const [lastClockResult, setLastClockResult] = useState(null);
             const [scanComplete, setScanComplete] = useState(false);
@@ -209,7 +197,6 @@
             const calculateEmployeeHours = (emp, mode = 'today', startRange = null, endRange = null) => {
                 let total = 0;
                 const history = emp.history || [];
-                const shifts = emp.shifts || [];
                 const now = new Date();
                 const todayStr = now.toISOString().split('T')[0];
                 const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
@@ -269,35 +256,21 @@
                 "2026-01-01": "New Year's Day", "2026-03-21": "Human Rights Day", "2026-04-03": "Good Friday", "2026-04-06": "Family Day", "2026-04-27": "Freedom Day", "2026-05-01": "Workers' Day", "2026-06-16": "Youth Day", "2026-08-09": "National Women's Day", "2026-08-10": "National Women's Day (Obs)", "2026-09-24": "Heritage Day", "2026-12-16": "Day of Reconciliation", "2026-12-25": "Christmas Day", "2026-12-26": "Day of Goodwill"
             };
 
-            // INITIALIZE FIREBASE & LISTENERS
             useEffect(() => {
                 auth.onAuthStateChanged(async (u) => {
                     if (u) {
                         setIsCloudLive(true);
-                        // Listen for Employee Data
                         db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees')
                           .onSnapshot(snap => { if (!snap.empty) setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() }))); });
-                        // Listen for Kanban Data
-                        db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban')
-                          .onSnapshot(snap => { 
-                              if (!snap.empty) setKanbanCards(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
-                              else setKanbanCards([]); 
-                          });
                     } else { try { await auth.signInAnonymously(); } catch (e) {} }
                 });
                 const timer = setInterval(() => setCurrentTime(new Date()), 1000);
                 return () => clearInterval(timer);
             }, []);
 
-            // AUTOMATIC SCANNER TIMER
             useEffect(() => {
                 if (view === 'scanning' && selectedEmployee) {
-                    const timer = setTimeout(() => { 
-                        setScanComplete(true); 
-                        setTimeout(() => {
-                            processClockEvent(selectedEmployee); // Trigger directly since they are already authenticated into the hub
-                        }, 1200); 
-                    }, 3500);
+                    const timer = setTimeout(() => { setScanComplete(true); setTimeout(() => setView('personal_pin_entry'), 1200); }, 3500);
                     return () => clearTimeout(timer);
                 }
             }, [view, selectedEmployee]);
@@ -310,56 +283,6 @@
                 } else { stopCamera(); }
                 return () => stopCamera();
             }, [view, isCapturing, isBorrowCapturing]);
-
-            // KANBAN LOGIC
-            const handleSaveCard = async (e) => {
-                e.preventDefault();
-                if (!cardForm.title.trim()) return;
-                
-                if (isCloudLive) {
-                    if (kanbanEditingId) {
-                        await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban').doc(kanbanEditingId).update(cardForm);
-                    } else {
-                        await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban').add({...cardForm, createdAt: new Date().toISOString()});
-                    }
-                } else {
-                    if (kanbanEditingId) {
-                        setKanbanCards(prev => prev.map(c => c.id === kanbanEditingId ? { ...c, ...cardForm } : c));
-                    } else {
-                        setKanbanCards(prev => [...prev, { id: Date.now().toString(), ...cardForm, createdAt: new Date().toISOString() }]);
-                    }
-                }
-                
-                setShowCardEditor(false);
-                setKanbanEditingId(null);
-                setCardForm(initialCardForm);
-                announce('Kanban card saved');
-            };
-
-            const handlePhotoUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setCardForm({...cardForm, photo: reader.result});
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const openCardEditor = (card = null) => {
-                if (card) {
-                    setCardForm(card);
-                    setKanbanEditingId(card.id);
-                } else {
-                    setCardForm(initialCardForm);
-                    setKanbanEditingId(null);
-                }
-                setShowCardEditor(true);
-            };
-
-            const handlePrintKanban = (card) => {
-                setPrintingCard(card);
-                setTimeout(() => { window.print(); setPrintingCard(null); }, 800);
-            };
 
             // SECURE PIN PAD LOGIC (NO AUTO SUBMIT)
             const handleAdminPin = (digit) => {
@@ -383,12 +306,14 @@
                 }
             };
 
-            // MODIFIED: Employee must PIN in to access their hub.
             const submitPersonalPin = () => {
                 if (personalPinInput === (selectedEmployee?.personalCode || "")) {
-                    setView('emp_home'); // Correct PIN opens the hub
-                    setPersonalPinInput('');
-                    setPendingAction('normal');
+                    if (pendingAction.includes('time_off') || pendingAction === 'borrow_money' || pendingAction === 'archive') {
+                        setView('supervisor_approval');
+                        setPersonalPinInput('');
+                    } else {
+                        processClockEvent(selectedEmployee);
+                    }
                 } else {
                     setPersonalPinError(true); 
                     setTimeout(() => { setPersonalPinInput(''); setPersonalPinError(false); }, 800);
@@ -730,172 +655,11 @@
                     </header>
 
                     <main className="flex-1 overflow-y-auto p-8 custom-scrollbar pb-36">
-                        
-                        {/* 0. NEW HOME / MAIN DASHBOARD SCREEN */}
-                        {appMode === 'home' && (
-                            <div className="flex-1 flex flex-col items-center justify-center min-h-[70vh] animate-in zoom-in-95 duration-500 font-sans">
-                                <div className="text-center mb-16">
-                                    <div className="p-6 bg-[#ff8c00]/10 text-[#ff8c00] rounded-full inline-block mb-6 shadow-[0_0_50px_rgba(255,140,0,0.2)]">
-                                        <Icon name="hard-hat" size={80} strokeWidth={1.5} />
-                                    </div>
-                                    <h1 className="text-6xl md:text-7xl font-black uppercase italic tracking-tighter text-white">TimberSmith <span className="text-[#ff8c00]">Joinery</span></h1>
-                                    <p className="text-xl font-bold uppercase tracking-[0.4em] text-gray-500 mt-4 italic">Management Dashboard</p>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-4xl px-8">
-                                    <button onClick={() => { setAppMode('employee'); setView('dashboard'); }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-[#ff8c00] transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
-                                        <div className="p-8 bg-[#ff8c00]/10 text-[#ff8c00] rounded-full transition-transform group-hover:scale-110">
-                                            <Icon name="clock" size={60} />
-                                        </div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Clocking Terminal</h2>
-                                        <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Time & Attendance</p>
-                                    </button>
-                                    
-                                    <button onClick={() => { setAppMode('kanban'); setView('dashboard'); }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-blue-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
-                                        <div className="p-8 bg-blue-500/10 text-blue-500 rounded-full transition-transform group-hover:scale-110">
-                                            <Icon name="kanban" size={60} />
-                                        </div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Kanban Cards</h2>
-                                        <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Project Management</p>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 0.5 NEW KANBAN BOARD SCREEN */}
-                        {appMode === 'kanban' && (
-                            <div className="animate-in fade-in duration-500 h-full flex flex-col font-sans">
-                                <div className="flex justify-between items-center mb-8">
-                                    <div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Kanban Cards</h2>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Active Production Kanbans</p>
-                                    </div>
-                                    <button type="button" onClick={() => openCardEditor()} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center space-x-3 active:scale-95 transition-all">
-                                        <Icon name="user-plus" size={18} /><span>Create Kanban</span>
-                                    </button>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 content-start">
-                                    {kanbanCards.map(card => (
-                                        <div key={card.id} className="bg-[#151515] p-6 rounded-[2.5rem] border border-white/5 flex flex-col shadow-2xl relative group hover:border-blue-500/50 transition-all">
-                                            <div className="flex gap-4">
-                                                <div className="w-24 h-24 rounded-2xl bg-black/50 border border-white/10 overflow-hidden flex-shrink-0">
-                                                    {card.photo ? <img src={card.photo} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-600"><Icon name="camera" size={24}/></div>}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-black text-white uppercase italic text-lg leading-tight line-clamp-2">{card.title}</h4>
-                                                    <p className="text-xs text-blue-500 mt-1 font-bold">P/N: {card.partNo}</p>
-                                                    <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-widest">Loc: {card.location}</p>
-                                                </div>
-                                            </div>
-                                            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between">
-                                                <button type="button" onClick={() => handlePrintKanban(card)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"><Icon name="printer" size={14}/> Print Card</button>
-                                                <div className="flex gap-2">
-                                                    <button type="button" onClick={() => openCardEditor(card)} className="p-2 text-gray-500 hover:text-blue-500 transition-colors"><Icon name="edit-3" size={18}/></button>
-                                                    <button type="button" onClick={() => { if(confirm('Delete this Kanban?')) { if(isCloudLive) db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban').doc(card.id).delete(); else setKanbanCards(prev => prev.filter(c => c.id !== card.id)); } }} className="p-2 text-gray-500 hover:text-red-500 transition-colors"><Icon name="trash-2" size={18}/></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {kanbanCards.length === 0 && (
-                                        <div className="col-span-full flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] p-16 mt-8">
-                                            <div className="p-6 bg-white/5 rounded-full text-gray-600 mb-6"><Icon name="kanban" size={48} /></div>
-                                            <p className="text-gray-500 font-black uppercase text-sm tracking-widest text-center">No Active Kanbans</p>
-                                            <p className="text-gray-600 font-bold text-xs mt-2 text-center max-w-sm">Click "Create Kanban" to start tracking production orders.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Kanban Card Editor Modal */}
-                                {showCardEditor && (
-                                    <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in overflow-y-auto">
-                                        <div className="bg-[#151515] w-full max-w-4xl rounded-[4rem] border border-white/10 shadow-2xl p-10 my-8">
-                                            <div className="flex justify-between items-center mb-8">
-                                                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{kanbanEditingId ? 'Edit Kanban Card' : 'Create Kanban Card'}</h2>
-                                                <button type="button" onClick={() => setShowCardEditor(false)} className="p-3 text-gray-500 hover:text-white transition-all"><Icon name="x" size={24}/></button>
-                                            </div>
-                                            <form onSubmit={handleSaveCard} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="space-y-6">
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Card Title / Header</label>
-                                                        <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.title} onChange={e => setCardForm({...cardForm, title: e.target.value})} placeholder="E.g., LAMINATING POUCH" />
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Location</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.location} onChange={e => setCardForm({...cardForm, location: e.target.value})} placeholder="STATIONERY" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Our Part No.</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.partNo} onChange={e => setCardForm({...cardForm, partNo: e.target.value})} placeholder="NA" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Supplier P/No.</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.supplierPartNo} onChange={e => setCardForm({...cardForm, supplierPartNo: e.target.value})} placeholder="IBC10" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Supplier</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.supplier} onChange={e => setCardForm({...cardForm, supplier: e.target.value})} placeholder="AMAZON" />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Used For</label>
-                                                        <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.usedFor} onChange={e => setCardForm({...cardForm, usedFor: e.target.value})} placeholder="KANBAN CARDS" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Product Photo</label>
-                                                        <div className="mt-1 flex items-center gap-4">
-                                                            <div className="w-20 h-20 bg-black/50 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center">
-                                                                {cardForm.photo ? <img src={cardForm.photo} className="w-full h-full object-cover" /> : <Icon name="camera" size={20} className="text-gray-600"/>}
-                                                            </div>
-                                                            <label className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl cursor-pointer font-black text-[10px] uppercase tracking-widest transition-colors">
-                                                                Upload Image
-                                                                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Order When</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.orderWhen} onChange={e => setCardForm({...cardForm, orderWhen: e.target.value})} placeholder="20 LEFT" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Order Qty</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.orderQty} onChange={e => setCardForm({...cardForm, orderQty: e.target.value})} placeholder="100 IN BOX" />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Delivery Time</label>
-                                                        <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.deliveryTime} onChange={e => setCardForm({...cardForm, deliveryTime: e.target.value})} placeholder="NEXT DAY" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details / Notes</label>
-                                                        <textarea className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1 resize-none" rows="3" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
-                                                    </div>
-                                                    
-                                                    <button type="submit" className="w-full mt-8 py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-sm shadow-xl active:scale-95 transition-all">Save Kanban Card</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
                         {/* 1. Main Artisan Selection Dashboard (Filters out Archived) */}
                         {appMode === 'employee' && view === 'dashboard' && (
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 animate-in fade-in">
                                 {employees.filter(emp => !emp.isArchived).map(emp => (
-                                    <div key={emp.id} onClick={() => { 
-                                        setSelectedEmployee(emp); 
-                                        setPendingAction('hub_login'); 
-                                        setView('personal_pin_entry'); 
-                                    }} className="bg-[#151515] p-6 rounded-[3rem] border border-white/5 flex flex-col items-center cursor-pointer shadow-2xl hover:border-[#ff8c00] transition-all group active:scale-95">
+                                    <div key={emp.id} onClick={() => { setSelectedEmployee(emp); setView('emp_home'); }} className="bg-[#151515] p-6 rounded-[3rem] border border-white/5 flex flex-col items-center cursor-pointer shadow-2xl hover:border-[#ff8c00] transition-all group active:scale-95">
                                         <div className="relative mb-6">
                                             <PhotoAvatar emp={emp} size={110} className="group-hover:scale-105 transition-transform duration-500" />
                                             <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full border-[6px] border-[#151515] ${emp.status === 'In' ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-pulse' : emp.status === 'Break' ? 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'bg-red-500 shadow-md'}`} />
@@ -1487,21 +1251,10 @@
                                    </div>
                                    <div className="grid grid-cols-3 gap-4 mb-4">
                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
-                                           <button type="button" key={n} onClick={() => {
-                                               if (n === 'X') {
-                                                   setView('dashboard');
-                                                   setSelectedEmployee(null);
-                                                   setPendingAction('normal');
-                                                   setPersonalPinInput('');
-                                               } else if (n === 'C') {
-                                                   setPersonalPinInput('');
-                                               } else {
-                                                   handlePersonalPinDigit(n.toString());
-                                               }
-                                           }} className={`h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all active:bg-blue-600`}>{n}</button>
+                                           <button type="button" key={n} onClick={() => n === 'X' ? setView('emp_home') : n === 'C' ? setPersonalPinInput('') : handlePersonalPinDigit(n.toString())} className={`h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all ${pendingAction.includes('time_off') ? 'active:bg-purple-600' : pendingAction === 'borrow_money' ? 'active:bg-emerald-600' : pendingAction === 'archive' ? 'active:bg-red-600' : 'active:bg-blue-600'}`}>{n}</button>
                                        ))}
                                    </div>
-                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? 'bg-blue-600 text-white shadow-xl' : 'bg-white/5 text-gray-600'}`}>OK</button>
+                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? (pendingAction.includes('time_off') ? 'bg-purple-600 text-white shadow-xl' : pendingAction === 'borrow_money' ? 'bg-emerald-600 text-white shadow-xl' : pendingAction === 'archive' ? 'bg-red-600 text-white shadow-xl' : 'bg-blue-600 text-white shadow-xl') : 'bg-white/5 text-gray-600'}`}>OK</button>
                                </div>
                            </div>
                         )}
@@ -1626,9 +1379,7 @@
 
                     {!hideTaskbar && (
                         <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/10 flex items-center space-x-3 shadow-2xl z-[200] scale-90 md:scale-100 transition-all animate-in slide-in-from-bottom-5 no-print">
-                            <NavItem icon="home" tooltip="Main Menu" active={appMode === 'home'} colorClass="bg-white/20 text-white shadow-lg shadow-white/10" onClick={() => { setAppMode('home'); setView('dashboard'); setSelectedEmployee(null); }} />
-                            <NavItem icon="clock" tooltip="Clocking Terminal" active={appMode === 'employee'} colorClass="bg-[#ff8c00] text-white shadow-lg shadow-[#ff8c00]/20" onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
-                            <NavItem icon="kanban" tooltip="Kanban Cards" active={appMode === 'kanban'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('kanban'); setView('dashboard'); setSelectedEmployee(null); }} />
+                            <NavItem icon="layout-dashboard" tooltip="Workshop Dashboard" active={appMode === 'employee'} colorClass="bg-[#ff8c00] text-white shadow-lg shadow-[#ff8c00]/20" onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
                             <div className="w-[1px] h-10 bg-white/10 mx-2" />
                             <NavItem icon={isLocked ? "lock" : "unlock"} tooltip="Access Management Hub" active={!isLocked} colorClass="text-blue-500 bg-blue-500/10 shadow-[0_0_30px_#3b82f622]" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
                             {!isLocked && (
@@ -1755,7 +1506,7 @@
                                 </table>
                             </div>
 
-                            {/* Section 2: Money Borrowed / Cash Advances */}
+                            {/* Section 2: Money Borrowed / Cash Advances (Added as requested) */}
                             <div className="mb-8">
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-emerald-600">Money Borrowed / Advances</h3>
                                 <table className="w-full text-left border-collapse">
@@ -1792,7 +1543,7 @@
                                 </table>
                             </div>
 
-                            {/* Section 3: Time Off & Breaks History */}
+                            {/* Section 3: Time Off & Breaks History (Added as requested) */}
                             <div className="mb-8">
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-purple-600">Time Off / Mid-Shift Breaks</h3>
                                 <table className="w-full text-left border-collapse">
@@ -1839,111 +1590,6 @@
                                 <div className="text-center">
                                     <div className="border-b border-black mb-2 h-10"></div>
                                     <p className="text-xs font-bold uppercase text-gray-500">Supervisor Authorized Signature</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* --- KANBAN CARD PRINT OVERLAY --- */}
-                {printingCard && (
-                    <div className="absolute inset-0 z-[9999] min-h-screen bg-gray-200 py-10 flex flex-col items-center not-italic no-print font-sans">
-                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
-                            💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
-                        </div>
-                        
-                        <div className="bg-white text-black w-[800px] shadow-2xl relative">
-                            {/* FRONT OF CARD */}
-                            <div className="w-full border-2 border-black relative">
-                                {/* Header */}
-                                <div className="bg-[#c2f0b9] p-3 border-b-2 border-black font-black text-sm uppercase text-center tracking-widest">
-                                    EXAMPLE KANBAN : {printingCard.title}
-                                </div>
-                                <div className="flex min-h-[300px]">
-                                    {/* Left Column (Image & Location) */}
-                                    <div className="w-2/5 p-4 flex flex-col items-center justify-center border-r-2 border-black bg-white">
-                                        <div className="flex-1 flex items-center justify-center w-full p-2">
-                                            {printingCard.photo ? 
-                                                <img src={printingCard.photo} className="max-w-[200px] max-h-[200px] object-contain" /> : 
-                                                <div className="w-32 h-32 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 font-bold text-xs uppercase text-center">No Image</div>
-                                            }
-                                        </div>
-                                        <div className="bg-[#e4f9de] w-full p-3 border-2 border-black text-center font-black text-sm uppercase tracking-wider mt-4">
-                                            LOCATION: {printingCard.location}
-                                        </div>
-                                    </div>
-                                    {/* Right Column (Table) */}
-                                    <div className="w-3/5 bg-[#fffff0]">
-                                        <table className="w-full text-sm font-black border-collapse h-full">
-                                            <tbody>
-                                                <tr><td className="border-b-2 border-black p-3 w-2/5 bg-white">OUR PART NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.partNo}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-white">SUPPLIER P/NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplierPartNo}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-white">USED FOR</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.usedFor}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-white">SUPPLIER</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplier}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-[#fff7d6]">ORDER WHEN</td><td className="border-l-2 border-b-2 border-black p-3 bg-[#fff7d6]">{printingCard.orderWhen}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-[#fff7d6]">ORDER QTY</td><td className="border-l-2 border-b-2 border-black p-3 bg-[#fff7d6]">{printingCard.orderQty}</td></tr>
-                                                <tr><td className="p-3 bg-white">DELIVERY TIME</td><td className="border-l-2 border-black p-3 bg-white">{printingCard.deliveryTime}</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* CUT / FOLD DIVIDER */}
-                            <div className="w-full my-6 relative flex items-center justify-between px-4 opacity-50">
-                                <span>✂️</span>
-                                <div className="border-t-2 border-dashed border-black flex-1 mx-2"></div>
-                                <span className="font-mono text-xs font-bold tracking-widest px-2">FOLD HERE</span>
-                                <div className="border-t-2 border-dashed border-black flex-1 mx-2"></div>
-                                <span>✂️</span>
-                            </div>
-
-                            {/* BACK OF CARD */}
-                            <div className="w-full border-2 border-black relative bg-white">
-                                <div className="flex border-b-2 border-black min-h-[160px]">
-                                    {/* Left */}
-                                    <div className="w-1/2 border-r-2 border-black p-8 flex flex-col items-center justify-center bg-white">
-                                        <h2 className="text-4xl font-black text-red-600 uppercase tracking-widest mb-2">PULLED</h2>
-                                        <h2 className="text-4xl font-black text-red-600 uppercase tracking-widest">KANBAN</h2>
-                                    </div>
-                                    {/* Right */}
-                                    <div className="w-1/2 p-6 flex flex-col items-center justify-center bg-gray-50">
-                                        <table className="w-full text-sm font-black border-2 border-black bg-white">
-                                            <tbody>
-                                                <tr><td className="border-b-2 border-black p-3 text-center w-1/2 bg-[#fff7d6]">ORDER QTY</td><td className="border-l-2 border-b-2 border-black p-3 text-center bg-[#fff7d6]">{printingCard.orderQty}</td></tr>
-                                                <tr><td className="p-3 text-center bg-white">DELIVERY TIME</td><td className="border-l-2 border-black p-3 text-center bg-white">{printingCard.deliveryTime}</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div className="bg-[#c2f0b9] p-8 flex flex-col items-center justify-center">
-                                    <div className="w-full max-w-sm h-24 bg-white flex items-center justify-center border-2 border-black">
-                                        <svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
-                                            <rect x="10" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="18" y="5" width="8" height="50" fill="black"/>
-                                            <rect x="30" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="36" y="5" width="6" height="50" fill="black"/>
-                                            <rect x="46" y="5" width="10" height="50" fill="black"/>
-                                            <rect x="60" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="68" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="74" y="5" width="8" height="50" fill="black"/>
-                                            <rect x="86" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="94" y="5" width="12" height="50" fill="black"/>
-                                            <rect x="110" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="116" y="5" width="6" height="50" fill="black"/>
-                                            <rect x="126" y="5" width="8" height="50" fill="black"/>
-                                            <rect x="138" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="146" y="5" width="10" height="50" fill="black"/>
-                                            <rect x="160" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="168" y="5" width="6" height="50" fill="black"/>
-                                            <rect x="178" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="184" y="5" width="8" height="50" fill="black"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div className="p-3 border-t-2 border-black flex justify-between text-xs font-black uppercase">
-                                    <span>CONTACT DETAILS: {printingCard.contactDetails || 'NA'}</span>
-                                    <span>Re-order 2 / Other</span>
                                 </div>
                             </div>
                         </div>
