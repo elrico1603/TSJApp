@@ -139,10 +139,10 @@
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
             
-            // Kanban State (Updated with Color & Dimension capabilities)
+            // Kanban State (Updated with clean form fields)
             const [kanbanCards, setKanbanCards] = useState([]);
             const [showCardEditor, setShowCardEditor] = useState(false);
-            const initialCardForm = { title: '', location: '', partNo: '', supplierPartNo: '', usedFor: '', supplier: '', orderWhen: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#c2f0b9', width: '800', height: '' };
+            const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#c2f0b9', width: '800', height: '' };
             const [cardForm, setCardForm] = useState(initialCardForm);
             const [printingCard, setPrintingCard] = useState(null);
             const [kanbanEditingId, setKanbanEditingId] = useState(null);
@@ -784,7 +784,7 @@
                                                 </div>
                                                 <div className="flex-1">
                                                     <h4 className="font-black text-white uppercase italic text-lg leading-tight line-clamp-2">{card.title}</h4>
-                                                    <p className="text-xs text-blue-500 mt-1 font-bold" style={{ color: card.color || '#3b82f6' }}>P/N: {card.partNo}</p>
+                                                    <p className="text-xs text-blue-500 mt-1 font-bold" style={{ color: card.color || '#3b82f6' }}>P/N: {card.supplierPartNo}</p>
                                                     <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-widest">Loc: {card.location}</p>
                                                 </div>
                                             </div>
@@ -826,60 +826,48 @@
                                                             <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.location} onChange={e => setCardForm({...cardForm, location: e.target.value})} placeholder="STATIONERY" />
                                                         </div>
                                                         <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Our Part No.</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.partNo} onChange={e => setCardForm({...cardForm, partNo: e.target.value})} placeholder="NA" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Supplier P/No.</label>
                                                             <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.supplierPartNo} onChange={e => setCardForm({...cardForm, supplierPartNo: e.target.value})} placeholder="IBC10" />
                                                         </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Supplier</label>
                                                             <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.supplier} onChange={e => setCardForm({...cardForm, supplier: e.target.value})} placeholder="AMAZON" />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Used For</label>
-                                                        <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.usedFor} onChange={e => setCardForm({...cardForm, usedFor: e.target.value})} placeholder="KANBAN CARDS" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Product Photo</label>
-                                                        <div className="mt-1 flex items-center gap-4">
-                                                            <div className="w-20 h-20 bg-black/50 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center">
-                                                                {cardForm.photo ? <img src={cardForm.photo} className="w-full h-full object-cover" /> : <Icon name="camera" size={20} className="text-gray-600"/>}
-                                                            </div>
-                                                            <label className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl cursor-pointer font-black text-[10px] uppercase tracking-widest transition-colors">
-                                                                Upload Image
-                                                                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Order When</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.orderWhen} onChange={e => setCardForm({...cardForm, orderWhen: e.target.value})} placeholder="20 LEFT" />
                                                         </div>
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Order Qty</label>
                                                             <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.orderQty} onChange={e => setCardForm({...cardForm, orderQty: e.target.value})} placeholder="100 IN BOX" />
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Delivery Time</label>
-                                                        <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.deliveryTime} onChange={e => setCardForm({...cardForm, deliveryTime: e.target.value})} placeholder="NEXT DAY" />
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Delivery Time</label>
+                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.deliveryTime} onChange={e => setCardForm({...cardForm, deliveryTime: e.target.value})} placeholder="NEXT DAY" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details</label>
+                                                            <input className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
+                                                        </div>
                                                     </div>
+                                                </div>
+
+                                                <div className="space-y-6">
                                                     <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details / Notes</label>
-                                                        <textarea className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1 resize-none" rows="3" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
+                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Product Photo</label>
+                                                        <div className="mt-1 flex items-center gap-4">
+                                                            <div className="w-32 h-32 bg-black/50 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center">
+                                                                {cardForm.photo ? <img src={cardForm.photo} className="w-full h-full object-cover" /> : <Icon name="camera" size={32} className="text-gray-600"/>}
+                                                            </div>
+                                                            <label className="px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl cursor-pointer font-black text-xs uppercase tracking-widest transition-colors shadow-lg">
+                                                                Upload Image
+                                                                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                                                            </label>
+                                                        </div>
                                                     </div>
                                                     
                                                     {/* Customization Section */}
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/10 pt-6 mt-2">
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/10 pt-6 mt-6">
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Theme Color</label>
                                                             <div className="flex items-center gap-3 mt-1">
@@ -897,7 +885,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <button type="submit" className="w-full mt-8 py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-sm shadow-xl active:scale-95 transition-all">Save Kanban Card</button>
+                                                    <button type="submit" className="w-full mt-4 py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-sm shadow-xl active:scale-95 transition-all">Save Kanban Card</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -1685,8 +1673,11 @@
 
                 {/* --- HARDCOPY PDF EXPORT ENGINE OVERLAY --- */}
                 {printingEmployee && (
-                    <div className="absolute inset-0 z-[9999] min-h-screen bg-gray-200 p-8 not-italic flex justify-center no-print">
-                        <div id="pdf-export-container" className="bg-white text-black p-12 font-sans w-full max-w-4xl shadow-xl">
+                    <div className="absolute inset-0 z-[9999] min-h-screen bg-white py-10 flex flex-col items-center not-italic font-sans">
+                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
+                            💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
+                        </div>
+                        <div id="pdf-export-container" className="bg-white text-black p-12 font-sans w-full max-w-4xl">
                             <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end">
                                 <div>
                                     <h1 className="text-4xl font-black uppercase tracking-tighter">TimberSmith Joinery</h1>
@@ -1866,12 +1857,12 @@
 
                 {/* --- KANBAN CARD PRINT OVERLAY --- */}
                 {printingCard && (
-                    <div className="absolute inset-0 z-[9999] min-h-screen bg-gray-200 py-10 flex flex-col items-center not-italic no-print font-sans">
+                    <div className="absolute inset-0 z-[9999] min-h-screen bg-white py-10 flex flex-col items-center not-italic font-sans">
                         <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
                         
-                        <div className="bg-white text-black shadow-2xl relative" style={{ 
+                        <div className="bg-white text-black relative" style={{ 
                             width: printingCard.width ? `${printingCard.width}px` : '800px', 
                             height: printingCard.height ? `${printingCard.height}px` : 'auto' 
                         }}>
@@ -1898,11 +1889,8 @@
                                     <div className="w-3/5 bg-[#fffff0]">
                                         <table className="w-full text-sm font-black border-collapse h-full">
                                             <tbody>
-                                                <tr><td className="border-b-2 border-black p-3 w-2/5 bg-white">OUR PART NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.partNo}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-white">SUPPLIER P/NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplierPartNo}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-white">USED FOR</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.usedFor}</td></tr>
+                                                <tr><td className="border-b-2 border-black p-3 w-2/5 bg-white">SUPPLIER P/NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplierPartNo}</td></tr>
                                                 <tr><td className="border-b-2 border-black p-3 bg-white">SUPPLIER</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplier}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-[#fff7d6]">ORDER WHEN</td><td className="border-l-2 border-b-2 border-black p-3 bg-[#fff7d6]">{printingCard.orderWhen}</td></tr>
                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff7d6]">ORDER QTY</td><td className="border-l-2 border-b-2 border-black p-3 bg-[#fff7d6]">{printingCard.orderQty}</td></tr>
                                                 <tr><td className="p-3 bg-white">DELIVERY TIME</td><td className="border-l-2 border-black p-3 bg-white">{printingCard.deliveryTime}</td></tr>
                                             </tbody>
@@ -1938,29 +1926,14 @@
                                         </table>
                                     </div>
                                 </div>
-                                <div className="p-8 flex flex-col items-center justify-center" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                    <div className="w-full max-w-sm h-24 bg-white flex items-center justify-center border-2 border-black">
-                                        <svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
-                                            <rect x="10" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="18" y="5" width="8" height="50" fill="black"/>
-                                            <rect x="30" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="36" y="5" width="6" height="50" fill="black"/>
-                                            <rect x="46" y="5" width="10" height="50" fill="black"/>
-                                            <rect x="60" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="68" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="74" y="5" width="8" height="50" fill="black"/>
-                                            <rect x="86" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="94" y="5" width="12" height="50" fill="black"/>
-                                            <rect x="110" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="116" y="5" width="6" height="50" fill="black"/>
-                                            <rect x="126" y="5" width="8" height="50" fill="black"/>
-                                            <rect x="138" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="146" y="5" width="10" height="50" fill="black"/>
-                                            <rect x="160" y="5" width="4" height="50" fill="black"/>
-                                            <rect x="168" y="5" width="6" height="50" fill="black"/>
-                                            <rect x="178" y="5" width="2" height="50" fill="black"/>
-                                            <rect x="184" y="5" width="8" height="50" fill="black"/>
-                                        </svg>
+                                <div className="p-6 flex flex-col items-center justify-center" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
+                                    <div className="w-full max-w-sm bg-white p-4 flex flex-col items-center justify-center border-2 border-black">
+                                        <p className="text-xs font-black uppercase mb-2 tracking-widest text-center">Scan to Reorder</p>
+                                        <img 
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} 
+                                            alt="Reorder QR Code" 
+                                            className="w-32 h-32 object-contain"
+                                        />
                                     </div>
                                 </div>
                                 <div className="p-3 border-t-2 border-black flex justify-between text-xs font-black uppercase">
