@@ -39,6 +39,12 @@
             body { background: white !important; color: black !important; overflow: auto !important; height: auto !important; }
             .no-print { display: none !important; }
             @page { margin: 1.5cm; }
+            /* Strict pagination rules to prevent text slicing */
+            tr, td, th, .avoid-break { 
+                page-break-inside: avoid !important; 
+                break-inside: avoid !important; 
+            }
+            table { page-break-inside: auto; }
         }
     </style>
 </head>
@@ -139,7 +145,7 @@
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
             
-            // Kanban State (Updated with clean form fields)
+            // Kanban State
             const [kanbanCards, setKanbanCards] = useState([]);
             const [showCardEditor, setShowCardEditor] = useState(false);
             const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#c2f0b9', width: '800', height: '' };
@@ -238,12 +244,14 @@
                 setTimeout(() => {
                     const element = document.getElementById('pdf-export-container');
                     if (window.html2pdf && element) {
+                        // Added avoid-all algorithm to prevent cutting table rows
                         const opt = {
-                            margin:       [10, 10, 10, 10],
+                            margin:       [15, 15, 15, 15],
                             filename:     `${emp.name}_${emp.surname}_Clocking_Summary.pdf`,
                             image:        { type: 'jpeg', quality: 0.98 },
                             html2canvas:  { scale: 2, useCORS: true, logging: false },
-                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
                         };
                         window.html2pdf().set(opt).from(element).save().then(() => {
                             setPrintingEmployee(null);
@@ -274,10 +282,8 @@
                 auth.onAuthStateChanged(async (u) => {
                     if (u) {
                         setIsCloudLive(true);
-                        // Listen for Employee Data
                         db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees')
                           .onSnapshot(snap => { if (!snap.empty) setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() }))); });
-                        // Listen for Kanban Data
                         db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban')
                           .onSnapshot(snap => { 
                               if (!snap.empty) setKanbanCards(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
@@ -295,7 +301,7 @@
                     const timer = setTimeout(() => { 
                         setScanComplete(true); 
                         setTimeout(() => {
-                            processClockEvent(selectedEmployee); // Trigger directly since they are already authenticated into the hub
+                            processClockEvent(selectedEmployee); 
                         }, 1200); 
                     }, 3500);
                     return () => clearTimeout(timer);
@@ -383,10 +389,9 @@
                 }
             };
 
-            // MODIFIED: Employee must PIN in to access their hub.
             const submitPersonalPin = () => {
                 if (personalPinInput === (selectedEmployee?.personalCode || "")) {
-                    setView('emp_home'); // Correct PIN opens the hub
+                    setView('emp_home'); 
                     setPersonalPinInput('');
                     setPendingAction('normal');
                 } else {
@@ -444,7 +449,6 @@
             // SAFE TRANSACTION ENGINES
             const processMoneyBorrow = async (emp) => {
                 try {
-                    // FORCE IMMEDIATE UI STATE CHANGE TO PREVENT HANGS
                     setLastClockResult('HR_Request');
                     setView('success_screen');
                     setPersonalPinInput('');
@@ -711,7 +715,7 @@
 
             return (
                 <Fragment>
-                {/* --- MAIN APP (Hides during PDF Export or Kanban generation to prevent browser print duplication) --- */}
+                {/* --- MAIN APP --- */}
                 <div className={`h-screen w-full bg-[#0c0c0c] flex flex-col relative overflow-hidden text-white italic ${isExportingPDF || printingCard ? 'hidden no-print' : ''}`}>
                     <canvas ref={canvasRef} className="hidden" />
                     
@@ -840,15 +844,13 @@
                                                             <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.orderQty} onChange={e => setCardForm({...cardForm, orderQty: e.target.value})} placeholder="100 IN BOX" />
                                                         </div>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Delivery Time</label>
-                                                            <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.deliveryTime} onChange={e => setCardForm({...cardForm, deliveryTime: e.target.value})} placeholder="NEXT DAY" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details</label>
-                                                            <input className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
-                                                        </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Delivery Time</label>
+                                                        <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.deliveryTime} onChange={e => setCardForm({...cardForm, deliveryTime: e.target.value})} placeholder="NEXT DAY" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details</label>
+                                                        <input className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
                                                     </div>
                                                 </div>
 
@@ -878,10 +880,6 @@
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Print Width (px)</label>
                                                             <input type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.width || '800'} onChange={e => setCardForm({...cardForm, width: e.target.value})} placeholder="800" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Print Length (px)</label>
-                                                            <input type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.height || ''} onChange={e => setCardForm({...cardForm, height: e.target.value})} placeholder="Auto" />
                                                         </div>
                                                     </div>
 
@@ -1239,7 +1237,7 @@
                                        <div className="p-8 bg-emerald-500/10 text-emerald-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="banknote" size={60} /></div>
                                        <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Money<br/>Borrowed</span>
                                    </button>
-                                   <button type="button" onClick={() => { setPendingAction('archive'); setView('personal_pin_entry'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
+                                   <button type="button" onClick={() => { setPendingAction('archive'); setView('supervisor_approval'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
                                        <div className="p-8 bg-red-500/10 text-red-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="archive" size={60} /></div>
                                        <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Archive<br/>Profile</span>
                                    </button>
@@ -1678,7 +1676,7 @@
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
                         <div id="pdf-export-container" className="bg-white text-black p-12 font-sans w-full max-w-4xl">
-                            <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end">
+                            <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end avoid-break">
                                 <div>
                                     <h1 className="text-4xl font-black uppercase tracking-tighter">TimberSmith Joinery</h1>
                                     <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mt-1">Labor Archive Summary</p>
@@ -1689,7 +1687,7 @@
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-8 mb-8 border border-gray-300 p-6 rounded-2xl">
+                            <div className="grid grid-cols-2 gap-8 mb-8 border border-gray-300 p-6 rounded-2xl avoid-break">
                                 <div>
                                     <p className="text-xs font-bold uppercase text-gray-500">Artisan Details</p>
                                     <p className="text-2xl font-black uppercase mt-1">{printingEmployee.name} {printingEmployee.surname}</p>
@@ -1703,7 +1701,7 @@
                                 </div>
                             </div>
 
-                            <div className="mb-8">
+                            <div className="mb-8 avoid-break">
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Hours Verification Summary</h3>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="bg-gray-100 p-4 rounded-xl text-center">
@@ -1723,10 +1721,10 @@
 
                             {/* Section 1: Itemized Shift & Clocking History */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Itemized Shift & Clocking History</h3>
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Itemized Shift & Clocking History</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                             <th className="p-3 border border-gray-300 font-bold">Date</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Clock In</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Clock Out</th>
@@ -1738,7 +1736,7 @@
                                             .filter(s => s.date >= startDate && s.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((s, i) => (
-                                            <tr key={i}>
+                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{s.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{s.clockIn}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{s.clockOut}</td>
@@ -1750,7 +1748,7 @@
                                             .filter(h => h.date >= startDate && h.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((h, i) => (
-                                            <tr key={`hist-${i}`}>
+                                            <tr key={`hist-${i}`} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{h.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
                                                 <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
@@ -1759,7 +1757,7 @@
                                         ))}
 
                                         {((printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate).length === 0 && (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate).length === 0) && (
-                                            <tr><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
+                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -1767,10 +1765,10 @@
 
                             {/* Section 2: Money Borrowed / Cash Advances */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-emerald-600">Money Borrowed / Advances</h3>
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Money Borrowed / Advances</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                             <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Amount Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Repayment Terms</th>
@@ -1783,7 +1781,7 @@
                                             .filter(a => a.date >= startDate && a.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((a, i) => (
-                                            <tr key={i}>
+                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{a.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono font-bold text-emerald-600">R {a.amount.toLocaleString()}</td>
                                                 <td className="p-3 border border-gray-300 text-center">{a.months} Month(s)</td>
@@ -1796,7 +1794,7 @@
                                             </tr>
                                         ))}
                                         {(!printingEmployee.advances || printingEmployee.advances.filter(a => a.date >= startDate && a.date <= endDate).length === 0) && (
-                                            <tr><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
+                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid' }}><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -1804,10 +1802,10 @@
 
                             {/* Section 3: Time Off & Breaks History */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-purple-600">Time Off / Mid-Shift Breaks</h3>
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Time Off / Mid-Shift Breaks</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                             <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Departure (Left)</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Return (Returned)</th>
@@ -1819,7 +1817,7 @@
                                             .filter(b => b.date >= startDate && b.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((b, i) => (
-                                            <tr key={i}>
+                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{b.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{b.leftAt}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{b.returnedAt || 'On-Going Break'}</td>
@@ -1827,21 +1825,21 @@
                                             </tr>
                                         ))}
                                         {(!printingEmployee.breaks || printingEmployee.breaks.filter(b => b.date >= startDate && b.date <= endDate).length === 0) && (
-                                            <tr><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
+                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
 
                             {printingEmployee.isArchived && (
-                                <div className="mb-12">
+                                <div className="mb-12 avoid-break">
                                     <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-red-600">Archival Record</h3>
                                     <p className="text-sm"><strong>Archived On:</strong> {printingEmployee.archiveDate}</p>
                                     <p className="text-sm text-red-600 font-bold"><strong>Reason:</strong> {printingEmployee.archiveReason}</p>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-16 mt-20 pt-8">
+                            <div className="grid grid-cols-2 gap-16 mt-20 pt-8 avoid-break">
                                 <div className="text-center">
                                     <div className="border-b border-black mb-2 h-10"></div>
                                     <p className="text-xs font-bold uppercase text-gray-500">Artisan Authorized Signature</p>
@@ -1861,84 +1859,96 @@
                         <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
-                        
-                        <div className="bg-white text-black relative" style={{ 
-                            width: printingCard.width ? `${printingCard.width}px` : '800px', 
-                            height: printingCard.height ? `${printingCard.height}px` : 'auto' 
-                        }}>
-                            {/* FRONT OF CARD */}
-                            <div className="w-full border-2 border-black relative">
-                                {/* Header */}
+
+                        {/* PRINT CONTAINER FOR A4 PAGE */}
+                        <div className="bg-white text-black flex flex-col border-2 border-black" style={{ width: printingCard.width ? `${printingCard.width}px` : '800px' }}>
+                            
+                            {/* PART 1: BIN LABEL */}
+                            <div className="flex items-stretch h-[250px] relative">
+                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">BIN LABEL</div>
+                                <div className="w-1/3 border-r-2 border-black p-4 flex flex-col items-center justify-center">
+                                    {printingCard.photo ? <img src={printingCard.photo} className="max-w-[150px] max-h-[150px] object-contain" /> : <div className="w-24 h-24 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
+                                </div>
+                                <div className="w-2/3 flex flex-col">
+                                    <div className="p-4 border-b-2 border-black font-black text-xl uppercase tracking-widest" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
+                                        {printingCard.title}
+                                    </div>
+                                    <div className="p-6 flex-1 flex flex-col justify-center space-y-2">
+                                        <p className="text-sm font-bold uppercase text-gray-600">Supplier P/N: <span className="text-black text-lg">{printingCard.supplierPartNo}</span></p>
+                                        <p className="text-sm font-bold uppercase text-gray-600">Location: <span className="text-black text-lg">{printingCard.location}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CUT DIVIDER */}
+                            <div className="w-full relative flex items-center px-4 border-t-2 border-dashed border-black h-8 bg-gray-50">
+                                <span className="absolute -left-4 text-sm bg-white">✂️ CUT</span>
+                            </div>
+
+                            {/* PART 2: FRONT CARD */}
+                            <div className="flex flex-col h-[250px] relative">
+                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">FRONT</div>
                                 <div className="p-3 border-b-2 border-black font-black text-sm uppercase text-center tracking-widest" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                    EXAMPLE KANBAN : {printingCard.title}
+                                    KANBAN CARD : {printingCard.title}
                                 </div>
-                                <div className="flex min-h-[300px]">
-                                    {/* Left Column (Image & Location) */}
-                                    <div className="w-2/5 p-4 flex flex-col items-center justify-center border-r-2 border-black bg-white">
-                                        <div className="flex-1 flex items-center justify-center w-full p-2">
-                                            {printingCard.photo ? 
-                                                <img src={printingCard.photo} className="max-w-[200px] max-h-[200px] object-contain" /> : 
-                                                <div className="w-32 h-32 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 font-bold text-xs uppercase text-center">No Image</div>
-                                            }
-                                        </div>
-                                        <div className="w-full p-3 border-2 border-black text-center font-black text-sm uppercase tracking-wider mt-4" style={{ backgroundColor: printingCard.color || '#e4f9de', opacity: 0.8 }}>
-                                            LOCATION: {printingCard.location}
-                                        </div>
-                                    </div>
-                                    {/* Right Column (Table) */}
-                                    <div className="w-3/5 bg-[#fffff0]">
-                                        <table className="w-full text-sm font-black border-collapse h-full">
-                                            <tbody>
-                                                <tr><td className="border-b-2 border-black p-3 w-2/5 bg-white">SUPPLIER P/NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplierPartNo}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-white">SUPPLIER</td><td className="border-l-2 border-b-2 border-black p-3 bg-white">{printingCard.supplier}</td></tr>
-                                                <tr><td className="border-b-2 border-black p-3 bg-[#fff7d6]">ORDER QTY</td><td className="border-l-2 border-b-2 border-black p-3 bg-[#fff7d6]">{printingCard.orderQty}</td></tr>
-                                                <tr><td className="p-3 bg-white">DELIVERY TIME</td><td className="border-l-2 border-black p-3 bg-white">{printingCard.deliveryTime}</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                                <table className="w-full text-sm font-black border-collapse flex-1 bg-[#fffff0]">
+                                    <tbody>
+                                        <tr><td className="border-b-2 border-black p-4 w-1/3 bg-white border-r-2">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplierPartNo}</td></tr>
+                                        <tr><td className="border-b-2 border-black p-4 w-1/3 bg-white border-r-2">SUPPLIER</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplier}</td></tr>
+                                        <tr><td className="border-b-2 border-black p-4 bg-[#fff7d6] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 bg-[#fff7d6] text-xl text-red-600">{printingCard.orderQty}</td></tr>
+                                        <tr><td className="p-4 bg-white border-r-2">DELIVERY TIME</td><td className="p-4 bg-white text-lg">{printingCard.deliveryTime}</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
 
-                            {/* CUT / FOLD DIVIDER */}
-                            <div className="w-full my-6 relative flex items-center justify-between px-4 opacity-50">
-                                <span>✂️</span>
-                                <div className="border-t-2 border-dashed border-black flex-1 mx-2"></div>
-                                <span className="font-mono text-xs font-bold tracking-widest px-2">FOLD HERE</span>
-                                <div className="border-t-2 border-dashed border-black flex-1 mx-2"></div>
-                                <span>✂️</span>
+                            {/* FOLD DIVIDER */}
+                            <div className="w-full relative flex items-center px-4 border-t-2 border-black h-8 bg-gray-200">
+                                <span className="absolute -left-4 text-sm bg-white font-mono text-xs font-bold px-1">FOLD ⤻</span>
                             </div>
 
-                            {/* BACK OF CARD */}
-                            <div className="w-full border-2 border-black relative bg-white">
-                                <div className="flex border-b-2 border-black min-h-[160px]">
-                                    {/* Left */}
-                                    <div className="w-1/2 border-r-2 border-black p-8 flex flex-col items-center justify-center bg-white">
-                                        <h2 className="text-4xl font-black text-red-600 uppercase tracking-widest mb-2">PULLED</h2>
+                            {/* PART 3: BACK CARD (PULLED) */}
+                            <div className="flex flex-col h-[250px] relative bg-white">
+                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">BACK</div>
+                                <div className="flex flex-1">
+                                    <div className="w-1/2 border-r-2 border-black p-6 flex flex-col items-center justify-center text-center">
+                                        <h2 className="text-5xl font-black text-red-600 uppercase tracking-tighter mb-2">PULLED</h2>
                                         <h2 className="text-4xl font-black text-red-600 uppercase tracking-widest">KANBAN</h2>
                                     </div>
-                                    {/* Right */}
-                                    <div className="w-1/2 p-6 flex flex-col items-center justify-center bg-gray-50">
-                                        <table className="w-full text-sm font-black border-2 border-black bg-white">
+                                    <div className="w-1/2 flex flex-col">
+                                        <table className="w-full text-sm font-black border-b-2 border-black flex-1">
                                             <tbody>
-                                                <tr><td className="border-b-2 border-black p-3 text-center w-1/2 bg-[#fff7d6]">ORDER QTY</td><td className="border-l-2 border-b-2 border-black p-3 text-center bg-[#fff7d6]">{printingCard.orderQty}</td></tr>
-                                                <tr><td className="p-3 text-center bg-white">DELIVERY TIME</td><td className="border-l-2 border-black p-3 text-center bg-white">{printingCard.deliveryTime}</td></tr>
+                                                <tr><td className="border-b-2 border-black p-4 text-center w-1/2 bg-[#fff7d6] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 text-center bg-[#fff7d6] text-xl text-red-600">{printingCard.orderQty}</td></tr>
+                                                <tr><td className="p-4 text-center bg-white border-r-2">DELIVERY TIME</td><td className="p-4 text-center bg-white text-lg">{printingCard.deliveryTime}</td></tr>
                                             </tbody>
                                         </table>
+                                        <div className="p-4 text-xs font-black uppercase bg-gray-100 flex-1 flex flex-col justify-center">
+                                            <span className="text-gray-500 mb-1">CONTACT / NOTES:</span>
+                                            <span className="text-sm">{printingCard.contactDetails || 'NA'}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="p-6 flex flex-col items-center justify-center" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                    <div className="w-full max-w-sm bg-white p-4 flex flex-col items-center justify-center border-2 border-black">
-                                        <p className="text-xs font-black uppercase mb-2 tracking-widest text-center">Scan to Reorder</p>
-                                        <img 
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} 
-                                            alt="Reorder QR Code" 
-                                            className="w-32 h-32 object-contain"
-                                        />
-                                    </div>
+                            </div>
+
+                            {/* CUT DIVIDER */}
+                            <div className="w-full relative flex items-center px-4 border-t-2 border-dashed border-black h-8 bg-gray-50">
+                                <span className="absolute -left-4 text-sm bg-white">✂️ CUT</span>
+                            </div>
+
+                            {/* PART 4: QR CODE REORDER */}
+                            <div className="flex h-[250px] relative bg-white border-b-2 border-black">
+                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">QR CODE</div>
+                                <div className="w-1/2 p-6 flex flex-col justify-center border-r-2 border-black" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
+                                    <h3 className="font-black uppercase text-2xl mb-2">{printingCard.title}</h3>
+                                    <p className="text-sm font-bold uppercase mb-1">Supplier: {printingCard.supplier}</p>
+                                    <p className="text-sm font-bold uppercase text-red-600">Reorder Qty: {printingCard.orderQty}</p>
                                 </div>
-                                <div className="p-3 border-t-2 border-black flex justify-between text-xs font-black uppercase">
-                                    <span>CONTACT DETAILS: {printingCard.contactDetails || 'NA'}</span>
-                                    <span>Re-order 2 / Other</span>
+                                <div className="w-1/2 p-6 flex flex-col items-center justify-center">
+                                    <p className="text-sm font-black uppercase mb-3 tracking-widest text-center">Scan to Reorder</p>
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} 
+                                        alt="Reorder QR Code" 
+                                        className="w-32 h-32 object-contain"
+                                    />
                                 </div>
                             </div>
                         </div>
