@@ -36,9 +36,22 @@
 
         /* Print Engine Overrides */
         @media print {
-            body { background: white !important; color: black !important; overflow: auto !important; height: auto !important; }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body, html { background: white !important; color: black !important; overflow: visible !important; height: auto !important; }
             .no-print { display: none !important; }
-            @page { margin: 1.5cm; }
+            .print-wrapper {
+                position: static !important;
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            @page { margin: 1cm; }
             /* Strict pagination rules to prevent text slicing */
             tr, td, th, .avoid-break { 
                 page-break-inside: avoid !important; 
@@ -145,7 +158,7 @@
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
             
-            // Kanban State
+            // Kanban State (Updated to remove fields per instructions)
             const [kanbanCards, setKanbanCards] = useState([]);
             const [showCardEditor, setShowCardEditor] = useState(false);
             const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#c2f0b9', width: '800', height: '' };
@@ -244,14 +257,14 @@
                 setTimeout(() => {
                     const element = document.getElementById('pdf-export-container');
                     if (window.html2pdf && element) {
-                        // Added avoid-all algorithm to prevent cutting table rows
+                        // Strict CSS mode to actively prevent slicing table rows
                         const opt = {
-                            margin:       [15, 15, 15, 15],
+                            margin:       [10, 10, 10, 10],
                             filename:     `${emp.name}_${emp.surname}_Clocking_Summary.pdf`,
                             image:        { type: 'jpeg', quality: 0.98 },
                             html2canvas:  { scale: 2, useCORS: true, logging: false },
                             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+                            pagebreak:    { mode: 'css', avoid: ['tr', '.avoid-break'] }
                         };
                         window.html2pdf().set(opt).from(element).save().then(() => {
                             setPrintingEmployee(null);
@@ -849,8 +862,8 @@
                                                         <input required className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.deliveryTime} onChange={e => setCardForm({...cardForm, deliveryTime: e.target.value})} placeholder="NEXT DAY" />
                                                     </div>
                                                     <div>
-                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details</label>
-                                                        <input className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
+                                                        <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Contact Details / Notes</label>
+                                                        <textarea className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1 resize-none" rows="3" value={cardForm.contactDetails} onChange={e => setCardForm({...cardForm, contactDetails: e.target.value})} placeholder="Re-order 2 / Other..." />
                                                     </div>
                                                 </div>
 
@@ -880,6 +893,10 @@
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Print Width (px)</label>
                                                             <input type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.width || '800'} onChange={e => setCardForm({...cardForm, width: e.target.value})} placeholder="800" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Print Length (px)</label>
+                                                            <input type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.height || ''} onChange={e => setCardForm({...cardForm, height: e.target.value})} placeholder="Auto" />
                                                         </div>
                                                     </div>
 
@@ -1671,7 +1688,7 @@
 
                 {/* --- HARDCOPY PDF EXPORT ENGINE OVERLAY --- */}
                 {printingEmployee && (
-                    <div className="absolute inset-0 z-[9999] min-h-screen bg-white py-10 flex flex-col items-center not-italic font-sans">
+                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-10 flex flex-col items-center not-italic font-sans">
                         <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
@@ -1724,7 +1741,7 @@
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Itemized Shift & Clocking History</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                             <th className="p-3 border border-gray-300 font-bold">Date</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Clock In</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Clock Out</th>
@@ -1736,7 +1753,7 @@
                                             .filter(s => s.date >= startDate && s.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((s, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{s.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{s.clockIn}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{s.clockOut}</td>
@@ -1748,7 +1765,7 @@
                                             .filter(h => h.date >= startDate && h.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((h, i) => (
-                                            <tr key={`hist-${i}`} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                            <tr key={`hist-${i}`} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{h.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
                                                 <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
@@ -1757,7 +1774,7 @@
                                         ))}
 
                                         {((printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate).length === 0 && (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
+                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -1768,7 +1785,7 @@
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Money Borrowed / Advances</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                             <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Amount Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Repayment Terms</th>
@@ -1781,7 +1798,7 @@
                                             .filter(a => a.date >= startDate && a.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((a, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{a.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono font-bold text-emerald-600">R {a.amount.toLocaleString()}</td>
                                                 <td className="p-3 border border-gray-300 text-center">{a.months} Month(s)</td>
@@ -1794,7 +1811,7 @@
                                             </tr>
                                         ))}
                                         {(!printingEmployee.advances || printingEmployee.advances.filter(a => a.date >= startDate && a.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid' }}><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
+                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -1805,7 +1822,7 @@
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Time Off / Mid-Shift Breaks</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                             <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Departure (Left)</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Return (Returned)</th>
@@ -1817,7 +1834,7 @@
                                             .filter(b => b.date >= startDate && b.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((b, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid' }}>
+                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                 <td className="p-3 border border-gray-300">{b.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{b.leftAt}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{b.returnedAt || 'On-Going Break'}</td>
@@ -1825,7 +1842,7 @@
                                             </tr>
                                         ))}
                                         {(!printingEmployee.breaks || printingEmployee.breaks.filter(b => b.date >= startDate && b.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
+                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -1855,7 +1872,7 @@
 
                 {/* --- KANBAN CARD PRINT OVERLAY --- */}
                 {printingCard && (
-                    <div className="absolute inset-0 z-[9999] min-h-screen bg-white py-10 flex flex-col items-center not-italic font-sans">
+                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-10 flex flex-col items-center not-italic font-sans">
                         <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
