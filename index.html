@@ -40,7 +40,14 @@
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
-            body, html { background: white !important; color: black !important; overflow: visible !important; height: auto !important; }
+            body, html { 
+                background: white !important; 
+                color: black !important; 
+                overflow: visible !important; 
+                height: auto !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+            }
             .no-print { display: none !important; }
             .print-wrapper {
                 position: static !important;
@@ -50,9 +57,9 @@
                 overflow: visible !important;
                 padding: 0 !important;
                 margin: 0 !important;
+                background: white !important;
             }
-            @page { margin: 1cm; }
-            /* Strict pagination rules to prevent text slicing */
+            @page { margin: 0.5cm; }
             tr, td, th, .avoid-break { 
                 page-break-inside: avoid !important; 
                 break-inside: avoid !important; 
@@ -161,7 +168,7 @@
             // Kanban State (Updated to remove fields per instructions)
             const [kanbanCards, setKanbanCards] = useState([]);
             const [showCardEditor, setShowCardEditor] = useState(false);
-            const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#c2f0b9', width: '800', height: '' };
+            const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#d9ead3', width: '800', height: '' };
             const [cardForm, setCardForm] = useState(initialCardForm);
             const [printingCard, setPrintingCard] = useState(null);
             const [kanbanEditingId, setKanbanEditingId] = useState(null);
@@ -886,8 +893,8 @@
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Theme Color</label>
                                                             <div className="flex items-center gap-3 mt-1">
-                                                                <input type="color" className="w-14 h-14 bg-black/40 border border-white/5 rounded-2xl p-1 cursor-pointer" value={cardForm.color || '#c2f0b9'} onChange={e => setCardForm({...cardForm, color: e.target.value})} />
-                                                                <span className="text-xs font-mono font-bold text-gray-400">{cardForm.color || '#c2f0b9'}</span>
+                                                                <input type="color" className="w-14 h-14 bg-black/40 border border-white/5 rounded-2xl p-1 cursor-pointer" value={cardForm.color || '#d9ead3'} onChange={e => setCardForm({...cardForm, color: e.target.value})} />
+                                                                <span className="text-xs font-mono font-bold text-gray-400">{cardForm.color || '#d9ead3'}</span>
                                                             </div>
                                                         </div>
                                                         <div>
@@ -1872,102 +1879,116 @@
 
                 {/* --- KANBAN CARD PRINT OVERLAY --- */}
                 {printingCard && (
-                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-10 flex flex-col items-center not-italic font-sans">
-                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
+                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-4 flex flex-col items-center not-italic font-sans">
+                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-4 rounded-lg border border-blue-200 w-full max-w-[800px]">
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
 
                         {/* PRINT CONTAINER FOR A4 PAGE */}
-                        <div className="bg-white text-black flex flex-col border-2 border-black" style={{ width: printingCard.width ? `${printingCard.width}px` : '800px' }}>
+                        <div className="w-full mx-auto bg-white text-black border-2 border-black flex flex-col" style={{ maxWidth: printingCard.width ? `${printingCard.width}px` : '800px' }}>
                             
                             {/* PART 1: BIN LABEL */}
-                            <div className="flex items-stretch h-[250px] relative">
-                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">BIN LABEL</div>
-                                <div className="w-1/3 border-r-2 border-black p-4 flex flex-col items-center justify-center">
-                                    {printingCard.photo ? <img src={printingCard.photo} className="max-w-[150px] max-h-[150px] object-contain" /> : <div className="w-24 h-24 border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
+                            <div className="w-full flex flex-col avoid-break">
+                                <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                    EXAMPLE KANBAN : {printingCard.title}
                                 </div>
-                                <div className="w-2/3 flex flex-col">
-                                    <div className="p-4 border-b-2 border-black font-black text-xl uppercase tracking-widest" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                        {printingCard.title}
+                                <div className="flex w-full">
+                                    <div className="w-1/3 border-r-2 border-black flex flex-col p-3">
+                                         <div className="flex-1 flex justify-center items-center h-28">
+                                             {printingCard.photo ? <img src={printingCard.photo} className="max-h-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
+                                         </div>
+                                         <div className="w-full mt-2 border-2 border-black p-1 text-center font-black text-xs uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                             LOCATION: {printingCard.location}
+                                         </div>
                                     </div>
-                                    <div className="p-6 flex-1 flex flex-col justify-center space-y-2">
-                                        <p className="text-sm font-bold uppercase text-gray-600">Supplier P/N: <span className="text-black text-lg">{printingCard.supplierPartNo}</span></p>
-                                        <p className="text-sm font-bold uppercase text-gray-600">Location: <span className="text-black text-lg">{printingCard.location}</span></p>
+                                    <div className="w-2/3">
+                                         <table className="w-full text-xs font-black border-collapse h-full">
+                                             <tbody>
+                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 border-r-2">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-3">{printingCard.supplierPartNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 border-r-2">SUPPLIER</td><td className="border-b-2 border-black p-3">{printingCard.supplier}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-3 bg-[#fff2cc] text-red-600 text-lg">{printingCard.orderQty}</td></tr>
+                                                 <tr><td className="p-3 border-r-2">DELIVERY TIME</td><td className="p-3">{printingCard.deliveryTime}</td></tr>
+                                             </tbody>
+                                         </table>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* CUT DIVIDER */}
-                            <div className="w-full relative flex items-center px-4 border-t-2 border-dashed border-black h-8 bg-gray-50">
-                                <span className="absolute -left-4 text-sm bg-white">✂️ CUT</span>
+                            {/* CUT LINE */}
+                            <div className="w-full border-t-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
+                                <span>✂️ CUT</span><span>✂️ CUT</span>
                             </div>
 
                             {/* PART 2: FRONT CARD */}
-                            <div className="flex flex-col h-[250px] relative">
-                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">FRONT</div>
-                                <div className="p-3 border-b-2 border-black font-black text-sm uppercase text-center tracking-widest" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                    KANBAN CARD : {printingCard.title}
+                            <div className="w-full flex flex-col avoid-break">
+                                <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                    EXAMPLE KANBAN : {printingCard.title}
                                 </div>
-                                <table className="w-full text-sm font-black border-collapse flex-1 bg-[#fffff0]">
-                                    <tbody>
-                                        <tr><td className="border-b-2 border-black p-4 w-1/3 bg-white border-r-2">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplierPartNo}</td></tr>
-                                        <tr><td className="border-b-2 border-black p-4 w-1/3 bg-white border-r-2">SUPPLIER</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplier}</td></tr>
-                                        <tr><td className="border-b-2 border-black p-4 bg-[#fff7d6] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 bg-[#fff7d6] text-xl text-red-600">{printingCard.orderQty}</td></tr>
-                                        <tr><td className="p-4 bg-white border-r-2">DELIVERY TIME</td><td className="p-4 bg-white text-lg">{printingCard.deliveryTime}</td></tr>
-                                    </tbody>
-                                </table>
+                                <div className="flex w-full">
+                                    <div className="w-1/3 border-r-2 border-black flex flex-col p-3">
+                                         <div className="flex-1 flex justify-center items-center h-28">
+                                             {printingCard.photo ? <img src={printingCard.photo} className="max-h-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
+                                         </div>
+                                         <div className="w-full mt-2 border-2 border-black p-1 text-center font-black text-xs uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                             LOCATION: {printingCard.location}
+                                         </div>
+                                    </div>
+                                    <div className="w-2/3">
+                                         <table className="w-full text-xs font-black border-collapse h-full">
+                                             <tbody>
+                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 border-r-2">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-3">{printingCard.supplierPartNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 border-r-2">SUPPLIER</td><td className="border-b-2 border-black p-3">{printingCard.supplier}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-3 bg-[#fff2cc] text-red-600 text-lg">{printingCard.orderQty}</td></tr>
+                                                 <tr><td className="p-3 border-r-2">DELIVERY TIME</td><td className="p-3">{printingCard.deliveryTime}</td></tr>
+                                             </tbody>
+                                         </table>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* FOLD DIVIDER */}
-                            <div className="w-full relative flex items-center px-4 border-t-2 border-black h-8 bg-gray-200">
-                                <span className="absolute -left-4 text-sm bg-white font-mono text-xs font-bold px-1">FOLD ⤻</span>
+                            {/* FOLD LINE */}
+                            <div className="w-full border-t-2 border-black flex justify-center items-center py-2 bg-gray-200 text-xs font-black tracking-[0.3em]">
+                                ⤻ FOLD HERE ⤻
                             </div>
 
                             {/* PART 3: BACK CARD (PULLED) */}
-                            <div className="flex flex-col h-[250px] relative bg-white">
-                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">BACK</div>
-                                <div className="flex flex-1">
-                                    <div className="w-1/2 border-r-2 border-black p-6 flex flex-col items-center justify-center text-center">
-                                        <h2 className="text-5xl font-black text-red-600 uppercase tracking-tighter mb-2">PULLED</h2>
-                                        <h2 className="text-4xl font-black text-red-600 uppercase tracking-widest">KANBAN</h2>
-                                    </div>
-                                    <div className="w-1/2 flex flex-col">
-                                        <table className="w-full text-sm font-black border-b-2 border-black flex-1">
-                                            <tbody>
-                                                <tr><td className="border-b-2 border-black p-4 text-center w-1/2 bg-[#fff7d6] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 text-center bg-[#fff7d6] text-xl text-red-600">{printingCard.orderQty}</td></tr>
-                                                <tr><td className="p-4 text-center bg-white border-r-2">DELIVERY TIME</td><td className="p-4 text-center bg-white text-lg">{printingCard.deliveryTime}</td></tr>
-                                            </tbody>
-                                        </table>
-                                        <div className="p-4 text-xs font-black uppercase bg-gray-100 flex-1 flex flex-col justify-center">
-                                            <span className="text-gray-500 mb-1">CONTACT / NOTES:</span>
-                                            <span className="text-sm">{printingCard.contactDetails || 'NA'}</span>
-                                        </div>
-                                    </div>
+                            <div className="w-full flex avoid-break">
+                                <div className="w-1/2 border-r-2 border-black flex flex-col items-center justify-center p-6">
+                                     <h2 className="text-5xl font-black text-red-600 uppercase tracking-widest mb-2">PULLED</h2>
+                                     <h2 className="text-3xl font-black text-red-600 uppercase tracking-widest">KANBAN</h2>
+                                </div>
+                                <div className="w-1/2 flex flex-col">
+                                     <table className="w-full text-sm font-black border-b-2 border-black">
+                                         <tbody>
+                                             <tr><td className="border-b-2 border-black p-4 w-1/2 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 bg-[#fff2cc] text-red-600 text-xl">{printingCard.orderQty}</td></tr>
+                                             <tr><td className="p-4 border-r-2">DELIVERY TIME</td><td className="p-4 text-lg">{printingCard.deliveryTime}</td></tr>
+                                         </tbody>
+                                     </table>
+                                     <div className="p-4 text-xs font-black uppercase bg-gray-50 flex-1 flex flex-col justify-center">
+                                         <span className="text-gray-500 mb-1">CONTACT DETAILS / NOTES:</span>
+                                         <span>{printingCard.contactDetails || 'NA'}</span>
+                                     </div>
                                 </div>
                             </div>
 
-                            {/* CUT DIVIDER */}
-                            <div className="w-full relative flex items-center px-4 border-t-2 border-dashed border-black h-8 bg-gray-50">
-                                <span className="absolute -left-4 text-sm bg-white">✂️ CUT</span>
+                            {/* CUT LINE */}
+                            <div className="w-full border-t-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
+                                <span>✂️ CUT</span><span>✂️ CUT</span>
                             </div>
 
                             {/* PART 4: QR CODE REORDER */}
-                            <div className="flex h-[250px] relative bg-white border-b-2 border-black">
-                                <div className="absolute -left-6 top-1/2 -translate-y-1/2 rotate-[-90deg] text-[10px] font-black uppercase tracking-widest text-gray-500">QR CODE</div>
-                                <div className="w-1/2 p-6 flex flex-col justify-center border-r-2 border-black" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
+                            <div className="w-full flex avoid-break">
+                                <div className="w-1/2 border-r-2 border-black p-6 flex flex-col justify-center" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
                                     <h3 className="font-black uppercase text-2xl mb-2">{printingCard.title}</h3>
                                     <p className="text-sm font-bold uppercase mb-1">Supplier: {printingCard.supplier}</p>
                                     <p className="text-sm font-bold uppercase text-red-600">Reorder Qty: {printingCard.orderQty}</p>
                                 </div>
                                 <div className="w-1/2 p-6 flex flex-col items-center justify-center">
-                                    <p className="text-sm font-black uppercase mb-3 tracking-widest text-center">Scan to Reorder</p>
-                                    <img 
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} 
-                                        alt="Reorder QR Code" 
-                                        className="w-32 h-32 object-contain"
-                                    />
+                                    <p className="text-xs font-black uppercase mb-2 tracking-widest text-center">Scan to Reorder</p>
+                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} alt="QR Code" className="w-24 h-24 object-contain" />
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 )}
