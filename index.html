@@ -262,32 +262,10 @@
                 setIsExportingPDF(true);
                 
                 setTimeout(() => {
-                    const element = document.getElementById('pdf-export-container');
-                    if (window.html2pdf && element) {
-                        // Strict CSS mode to actively prevent slicing table rows
-                        const opt = {
-                            margin:       [10, 10, 10, 10],
-                            filename:     `${emp.name}_${emp.surname}_Clocking_Summary.pdf`,
-                            image:        { type: 'jpeg', quality: 0.98 },
-                            html2canvas:  { scale: 2, useCORS: true, logging: false },
-                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                            pagebreak:    { mode: 'css', avoid: ['tr', '.avoid-break'] }
-                        };
-                        window.html2pdf().set(opt).from(element).save().then(() => {
-                            setPrintingEmployee(null);
-                            setIsExportingPDF(false);
-                            announce('PDF Export successful');
-                        }).catch(err => {
-                            console.error('PDF Error:', err);
-                            window.print();
-                            setPrintingEmployee(null);
-                            setIsExportingPDF(false);
-                        });
-                    } else {
-                        window.print();
-                        setPrintingEmployee(null);
-                        setIsExportingPDF(false);
-                    }
+                    // Replaced broken html2pdf engine with Native Browser Engine for perfect page breaks
+                    window.print();
+                    setPrintingEmployee(null);
+                    setIsExportingPDF(false);
                 }, 800); 
             };
 
@@ -1756,33 +1734,50 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(printingEmployee.shifts || [])
-                                            .filter(s => s.date >= startDate && s.date <= endDate)
-                                            .sort((a,b) => a.date > b.date ? 1 : -1)
-                                            .map((s, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                <td className="p-3 border border-gray-300">{s.date}</td>
-                                                <td className="p-3 border border-gray-300 text-center font-mono">{s.clockIn}</td>
-                                                <td className="p-3 border border-gray-300 text-center font-mono">{s.clockOut}</td>
-                                                <td className="p-3 border border-gray-300 font-mono font-bold text-center">{formatTime(s.hours)}</td>
-                                            </tr>
-                                        ))}
-                                        
-                                        {(!printingEmployee.shifts || printingEmployee.shifts.length === 0) && (printingEmployee.history || [])
-                                            .filter(h => h.date >= startDate && h.date <= endDate)
-                                            .sort((a,b) => a.date > b.date ? 1 : -1)
-                                            .map((h, i) => (
-                                            <tr key={`hist-${i}`} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                <td className="p-3 border border-gray-300">{h.date}</td>
-                                                <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
-                                                <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
-                                                <td className="p-3 border border-gray-300 font-mono font-bold text-center">{formatTime(h.hours)}</td>
-                                            </tr>
-                                        ))}
+                                        {(() => {
+                                            // Extract standard detailed shifts
+                                            const rangeShifts = (printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate);
+                                            const shiftDates = new Set(rangeShifts.map(s => s.date));
+                                            
+                                            // Extract old history fallback ONLY for days where specific shift times weren't logged
+                                            const rangeHistory = (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate && !shiftDates.has(h.date));
+                                            
+                                            let combined = [
+                                                ...rangeShifts.map(s => ({ ...s, type: 'shift' })),
+                                                ...rangeHistory.map(h => ({ ...h, type: 'history', clockIn: '-', clockOut: '-' }))
+                                            ];
 
-                                        {((printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate).length === 0 && (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
-                                        )}
+                                            // Dynamically inject the currently active shift if they are clocked in
+                                            if (printingEmployee.status === 'In' && printingEmployee.shiftStartTime) {
+                                                const shiftStart = new Date(printingEmployee.shiftStartTime);
+                                                const shiftStartStr = getLocalDateString(shiftStart);
+                                                if (shiftStartStr >= startDate && shiftStartStr <= endDate) {
+                                                    const now = new Date();
+                                                    combined.push({
+                                                        date: shiftStartStr,
+                                                        clockIn: shiftStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        clockOut: 'Active Now',
+                                                        hours: parseFloat(((now - shiftStart) / 3600000).toFixed(2)),
+                                                        type: 'shift'
+                                                    });
+                                                }
+                                            }
+
+                                            combined.sort((a, b) => a.date > b.date ? 1 : -1);
+
+                                            if (combined.length === 0) {
+                                                return <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>;
+                                            }
+
+                                            return combined.map((item, i) => (
+                                                <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                    <td className="p-3 border border-gray-300">{item.date}</td>
+                                                    <td className="p-3 border border-gray-300 text-center font-mono">{item.clockIn}</td>
+                                                    <td className="p-3 border border-gray-300 text-center font-mono font-bold text-blue-600">{item.clockOut}</td>
+                                                    <td className="p-3 border border-gray-300 font-mono font-bold text-center">{formatTime(item.hours)}</td>
+                                                </tr>
+                                            ));
+                                        })()}
                                     </tbody>
                                 </table>
                             </div>
