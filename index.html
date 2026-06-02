@@ -143,7 +143,10 @@
                 'file-text': <Fragment><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></Fragment>,
                 'check-circle': <Fragment><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Fragment>,
                 'home': <Fragment><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Fragment>,
-                'kanban': <Fragment><path d="M4 4h4v16H4z"/><path d="M10 4h4v10h-4z"/><path d="M16 4h4v14h-4z"/></Fragment>
+                'kanban': <Fragment><path d="M4 4h4v16H4z"/><path d="M10 4h4v10h-4z"/><path d="M16 4h4v14h-4z"/></Fragment>,
+                'package': <Fragment><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></Fragment>,
+                'truck': <Fragment><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></Fragment>,
+                'rotate-ccw': <Fragment><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></Fragment>
             };
             return (
                 <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -153,6 +156,9 @@
         };
 
         const TimberSmithApp = () => {
+            // ==========================================
+            // SECTION 1: STATE MANAGEMENT
+            // ==========================================
             const [employees, setEmployees] = useState([]);
             const [isCloudLive, setIsCloudLive] = useState(false);
             const [currentTime, setCurrentTime] = useState(new Date());
@@ -164,14 +170,23 @@
             const [pinInput, setPinInput] = useState('');
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
+            const [targetAdminMode, setTargetAdminMode] = useState(null);
             
-            // Kanban State (Updated to remove fields per instructions)
+            // Kanban State
             const [kanbanCards, setKanbanCards] = useState([]);
             const [showCardEditor, setShowCardEditor] = useState(false);
-            const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#d9ead3', width: '800', height: '' };
+            const initialCardForm = { title: '', location: '', supplierPartNo: '', supplier: '', orderQty: '', deliveryTime: '', contactDetails: '', photo: '', color: '#c2f0b9', width: '800', height: '' };
             const [cardForm, setCardForm] = useState(initialCardForm);
             const [printingCard, setPrintingCard] = useState(null);
             const [kanbanEditingId, setKanbanEditingId] = useState(null);
+
+            // Ordering Management State
+            const [orders, setOrders] = useState([]);
+            const [showOrderModal, setShowOrderModal] = useState(false);
+            const [orderCategory, setOrderCategory] = useState('Not Arrived Yet');
+            const initialOrderForm = { title: '', notes: '', photo: '', status: 'Not Arrived Yet' };
+            const [orderForm, setOrderForm] = useState(initialOrderForm);
+            const [orderEditingId, setOrderEditingId] = useState(null);
 
             // Clocking & Actions State
             const [lastClockResult, setLastClockResult] = useState(null);
@@ -225,6 +240,9 @@
             const canvasRef = useRef(null);
             const streamRef = useRef(null);
 
+            // ==========================================
+            // SECTION 2: UTILITIES & TIME HELPERS
+            // ==========================================
             const formatTime = (decimalHours) => {
                 if (!decimalHours || decimalHours < 0) return '0h 00m';
                 const hours = Math.floor(decimalHours);
@@ -262,7 +280,6 @@
                 setIsExportingPDF(true);
                 
                 setTimeout(() => {
-                    // Replaced broken html2pdf engine with Native Browser Engine for perfect page breaks
                     window.print();
                     setPrintingEmployee(null);
                     setIsExportingPDF(false);
@@ -275,17 +292,27 @@
                 "2026-01-01": "New Year's Day", "2026-03-21": "Human Rights Day", "2026-04-03": "Good Friday", "2026-04-06": "Family Day", "2026-04-27": "Freedom Day", "2026-05-01": "Workers' Day", "2026-06-16": "Youth Day", "2026-08-09": "National Women's Day", "2026-08-10": "National Women's Day (Obs)", "2026-09-24": "Heritage Day", "2026-12-16": "Day of Reconciliation", "2026-12-25": "Christmas Day", "2026-12-26": "Day of Goodwill"
             };
 
-            // INITIALIZE FIREBASE & LISTENERS
+            // ==========================================
+            // SECTION 3: INITIALIZE FIREBASE & LISTENERS
+            // ==========================================
             useEffect(() => {
                 auth.onAuthStateChanged(async (u) => {
                     if (u) {
                         setIsCloudLive(true);
+                        // Listen for Employee Data
                         db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('employees')
                           .onSnapshot(snap => { if (!snap.empty) setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() }))); });
+                        // Listen for Kanban Data
                         db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban')
                           .onSnapshot(snap => { 
                               if (!snap.empty) setKanbanCards(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
                               else setKanbanCards([]); 
+                          });
+                        // Listen for Ordering Data
+                        db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders')
+                          .onSnapshot(snap => { 
+                              if (!snap.empty) setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
+                              else setOrders([]); 
                           });
                     } else { try { await auth.signInAnonymously(); } catch (e) {} }
                 });
@@ -315,7 +342,9 @@
                 return () => stopCamera();
             }, [view, isCapturing, isBorrowCapturing]);
 
-            // KANBAN LOGIC
+            // ==========================================
+            // SECTION 4: KANBAN LOGIC
+            // ==========================================
             const handleSaveCard = async (e) => {
                 e.preventDefault();
                 if (!cardForm.title.trim()) return;
@@ -365,7 +394,61 @@
                 setTimeout(() => { window.print(); setPrintingCard(null); }, 800);
             };
 
-            // SECURE PIN PAD LOGIC (NO AUTO SUBMIT)
+            // ==========================================
+            // SECTION 5: ORDERING MANAGEMENT LOGIC
+            // ==========================================
+            const handleSaveOrder = async (e) => {
+                e.preventDefault();
+                if (!orderForm.title.trim()) return;
+                
+                const newOrder = {
+                    ...orderForm,
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (isCloudLive) {
+                    if (orderEditingId) {
+                        await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders').doc(orderEditingId).update(newOrder);
+                    } else {
+                        await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders').add({...newOrder, createdAt: new Date().toISOString()});
+                    }
+                } else {
+                    if (orderEditingId) {
+                        setOrders(prev => prev.map(o => o.id === orderEditingId ? { ...o, ...newOrder } : o));
+                    } else {
+                        setOrders(prev => [...prev, { id: Date.now().toString(), ...newOrder, createdAt: new Date().toISOString() }]);
+                    }
+                }
+                
+                setShowOrderModal(false);
+                setOrderEditingId(null);
+                setOrderForm({ title: '', notes: '', photo: '', status: orderCategory });
+                announce('Order record saved');
+            };
+
+            const handleOrderPhotoUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setOrderForm({...orderForm, photo: reader.result});
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const openOrderEditor = (order = null) => {
+                if (order) {
+                    setOrderForm(order);
+                    setOrderEditingId(order.id);
+                } else {
+                    setOrderForm({ title: '', notes: '', photo: '', status: orderCategory });
+                    setOrderEditingId(null);
+                }
+                setShowOrderModal(true);
+            };
+
+            // ==========================================
+            // SECTION 6: SECURE PIN PAD LOGIC
+            // ==========================================
             const handleAdminPin = (digit) => {
                 if (pinInput.length < 4) {
                     setPinInput(pinInput + digit);
@@ -374,7 +457,12 @@
 
             const submitAdminPin = () => {
                 if (pinInput === ADMIN_PIN || pinInput === SUPER_USER_PIN) {
-                    setIsLocked(false); setShowPinModal(false); setPinInput(''); setAppMode('admin'); setView('dashboard');
+                    setIsLocked(false); 
+                    setShowPinModal(false); 
+                    setPinInput(''); 
+                    setAppMode(targetAdminMode || 'admin'); 
+                    setView('dashboard');
+                    setTargetAdminMode(null);
                 } else {
                     setAdminPinError(true);
                     setTimeout(() => { setPinInput(''); setAdminPinError(false); }, 800);
@@ -420,7 +508,9 @@
                 }
             };
 
-            // HR NOTIFICATION ENGINE
+            // ==========================================
+            // SECTION 7: HR NOTIFICATION ENGINE
+            // ==========================================
             const notifyHR = async (subject, htmlBody) => {
                 if (!isCloudLive) return;
                 try {
@@ -444,7 +534,9 @@
                 }
             };
 
-            // SAFE TRANSACTION ENGINES
+            // ==========================================
+            // SECTION 8: SAFE TRANSACTION ENGINES
+            // ==========================================
             const processMoneyBorrow = async (emp) => {
                 try {
                     setLastClockResult('HR_Request');
@@ -689,6 +781,9 @@
                 if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
             };
 
+            // ==========================================
+            // SECTION 12: APP RENDER UI
+            // ==========================================
             const PhotoAvatar = ({ emp, size = 100, className = "" }) => (
                 <div className={`rounded-[2.5rem] flex items-center justify-center overflow-hidden bg-[#111] border-2 border-white/10 shadow-inner ${className}`} style={{ width: size, height: size }}>
                     {emp.photo ? <img src={emp.photo} className="w-full h-full object-cover" /> : <span className="font-black text-white/10 uppercase" style={{ fontSize: size * 0.4 }}>{emp.name?.[0]}</span>}
@@ -713,7 +808,7 @@
 
             return (
                 <Fragment>
-                {/* --- MAIN APP --- */}
+                {/* --- MAIN APP (Hides during PDF Export or Kanban generation to prevent browser print duplication) --- */}
                 <div className={`h-screen w-full bg-[#0c0c0c] flex flex-col relative overflow-hidden text-white italic ${isExportingPDF || printingCard ? 'hidden no-print' : ''}`}>
                     <canvas ref={canvasRef} className="hidden" />
                     
@@ -744,8 +839,8 @@
                                     <p className="text-xl font-bold uppercase tracking-[0.4em] text-gray-500 mt-4 italic">Management Dashboard</p>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-4xl px-8">
-                                    <button onClick={() => { setAppMode('employee'); setView('dashboard'); }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-[#ff8c00] transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 w-full max-w-6xl px-8">
+                                    <button type="button" onClick={() => { setAppMode('employee'); setView('dashboard'); }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-[#ff8c00] transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
                                         <div className="p-8 bg-[#ff8c00]/10 text-[#ff8c00] rounded-full transition-transform group-hover:scale-110">
                                             <Icon name="clock" size={60} />
                                         </div>
@@ -753,49 +848,206 @@
                                         <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Time & Attendance</p>
                                     </button>
                                     
-                                    <button onClick={() => { setAppMode('kanban'); setView('dashboard'); }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-blue-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
+                                    <button type="button" onClick={() => {
+                                        if (isLocked) {
+                                            setTargetAdminMode('kanban');
+                                            setShowPinModal(true);
+                                        } else {
+                                            setAppMode('kanban');
+                                            setView('dashboard');
+                                        }
+                                    }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-blue-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
                                         <div className="p-8 bg-blue-500/10 text-blue-500 rounded-full transition-transform group-hover:scale-110">
                                             <Icon name="kanban" size={60} />
                                         </div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Kanban Cards</h2>
+                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Kanban Cards Creator</h2>
                                         <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Project Management</p>
+                                    </button>
+
+                                    <button type="button" onClick={() => setAppMode('ordering_menu')} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-purple-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
+                                        <div className="p-8 bg-purple-500/10 text-purple-500 rounded-full transition-transform group-hover:scale-110">
+                                            <Icon name="package" size={60} />
+                                        </div>
+                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Ordering Management</h2>
+                                        <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Inventory & Supplies</p>
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* 0.5 NEW KANBAN BOARD SCREEN */}
+                        {/* 0.6 NEW ORDERING MANAGEMENT MENU */}
+                        {appMode === 'ordering_menu' && (
+                            <div className="flex-1 flex flex-col items-center justify-center min-h-[70vh] animate-in zoom-in-95 duration-500 font-sans">
+                                <div className="w-full flex justify-start mb-8 px-8">
+                                    <button type="button" onClick={() => setAppMode('home')} className="p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all flex items-center gap-3 font-black uppercase text-xs tracking-widest">
+                                        <Icon name="arrow-left" size={20} /> Back to Dashboard
+                                    </button>
+                                </div>
+                                <div className="text-center mb-16">
+                                    <div className="p-6 bg-purple-500/10 text-purple-500 rounded-full inline-block mb-6 shadow-[0_0_50px_rgba(168,85,247,0.2)]">
+                                        <Icon name="package" size={80} strokeWidth={1.5} />
+                                    </div>
+                                    <h1 className="text-5xl md:text-6xl font-black uppercase italic tracking-tighter text-white">Ordering Management</h1>
+                                    <p className="text-xl font-bold uppercase tracking-[0.4em] text-gray-500 mt-4 italic">Select Category</p>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl px-8">
+                                    {/* Red Block */}
+                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('Not Arrived Yet'); }} className="bg-red-950/20 p-8 rounded-[3rem] border-2 border-red-500/30 hover:border-red-500 transition-all group shadow-[0_0_30px_rgba(239,68,68,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
+                                        <div className="p-5 bg-red-500/20 text-red-500 rounded-full transition-transform group-hover:scale-110"><Icon name="truck" size={32} /></div>
+                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-red-500">Purchase Orders</h3>
+                                        <p className="text-[10px] text-red-400/70 font-bold uppercase tracking-widest">Not Arrived Yet</p>
+                                    </button>
+
+                                    {/* Yellow Block */}
+                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('Incomplete Invoices \\ Delivery'); }} className="bg-yellow-950/20 p-8 rounded-[3rem] border-2 border-yellow-500/30 hover:border-yellow-500 transition-all group shadow-[0_0_30px_rgba(234,179,8,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
+                                        <div className="p-5 bg-yellow-500/20 text-yellow-500 rounded-full transition-transform group-hover:scale-110"><Icon name="file-text" size={32} /></div>
+                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-yellow-500">Incomplete</h3>
+                                        <p className="text-[10px] text-yellow-400/70 font-bold uppercase tracking-widest">Invoices / Delivery</p>
+                                    </button>
+
+                                    {/* Green Block */}
+                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('Purchase Orders & Deliveries Correct'); }} className="bg-emerald-950/20 p-8 rounded-[3rem] border-2 border-emerald-500/30 hover:border-emerald-500 transition-all group shadow-[0_0_30px_rgba(16,185,129,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
+                                        <div className="p-5 bg-emerald-500/20 text-emerald-500 rounded-full transition-transform group-hover:scale-110"><Icon name="check-circle" size={32} /></div>
+                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-emerald-500">Correct</h3>
+                                        <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-widest">Orders & Deliveries</p>
+                                    </button>
+
+                                    {/* Orange Block */}
+                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('To Be Returned'); }} className="bg-orange-950/20 p-8 rounded-[3rem] border-2 border-orange-500/30 hover:border-orange-500 transition-all group shadow-[0_0_30px_rgba(249,115,22,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
+                                        <div className="p-5 bg-orange-500/20 text-orange-500 rounded-full transition-transform group-hover:scale-110"><Icon name="rotate-ccw" size={32} /></div>
+                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-orange-500">To Be Returned</h3>
+                                        <p className="text-[10px] text-orange-400/70 font-bold uppercase tracking-widest">Action Required</p>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 0.7 ORDERING CATEGORY LIST VIEW */}
+                        {appMode === 'ordering' && (
+                            <div className="animate-in fade-in duration-500 h-full flex flex-col font-sans">
+                                <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                                    <div className="flex items-center gap-4">
+                                        <button type="button" onClick={() => setAppMode('ordering_menu')} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all">
+                                            <Icon name="arrow-left" size={24} />
+                                        </button>
+                                        <div>
+                                            <h2 className={`text-3xl font-black uppercase italic tracking-tighter ${orderCategory === 'Not Arrived Yet' ? 'text-red-500' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'text-yellow-500' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'text-emerald-500' : 'text-orange-500'}`}>{orderCategory}</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Ordering Management</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" onClick={() => openOrderEditor()} className={`text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center space-x-3 active:scale-95 transition-all ${orderCategory === 'Not Arrived Yet' ? 'bg-red-600' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'bg-yellow-600' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'bg-emerald-600' : 'bg-orange-600'}`}>
+                                        <Icon name="package" size={18} /><span>Create New</span>
+                                    </button>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 content-start">
+                                    {orders.filter(o => o.status === orderCategory).map(order => (
+                                        <div key={order.id} className={`bg-[#151515] p-6 rounded-[2.5rem] border flex flex-col shadow-2xl relative group transition-all ${orderCategory === 'Not Arrived Yet' ? 'border-red-500/20 hover:border-red-500/50' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'border-yellow-500/20 hover:border-yellow-500/50' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'border-emerald-500/20 hover:border-emerald-500/50' : 'border-orange-500/20 hover:border-orange-500/50'}`}>
+                                            <div className="flex gap-4">
+                                                <div className="w-24 h-24 rounded-2xl bg-black/50 border border-white/10 overflow-hidden flex-shrink-0">
+                                                    {order.photo ? <img src={order.photo} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-600"><Icon name="camera" size={24}/></div>}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-black text-white uppercase italic text-lg leading-tight line-clamp-2">{order.title}</h4>
+                                                    {order.notes && <p className="text-xs text-gray-400 mt-2 font-bold line-clamp-3">{order.notes}</p>}
+                                                </div>
+                                            </div>
+                                            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+                                                <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest">Logged: {new Date(order.createdAt).toLocaleDateString()}</p>
+                                                <div className="flex gap-2">
+                                                    <button type="button" onClick={() => openOrderEditor(order)} className="p-2 text-gray-500 hover:text-white transition-colors"><Icon name="edit-3" size={18}/></button>
+                                                    <button type="button" onClick={() => { if(confirm('Delete this record?')) { if(isCloudLive) db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders').doc(order.id).delete(); else setOrders(prev => prev.filter(o => o.id !== order.id)); } }} className="p-2 text-gray-500 hover:text-red-500 transition-colors"><Icon name="trash-2" size={18}/></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {orders.filter(o => o.status === orderCategory).length === 0 && (
+                                        <div className="col-span-full flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] p-16 mt-8">
+                                            <div className="p-6 bg-white/5 rounded-full text-gray-600 mb-6"><Icon name="package" size={48} /></div>
+                                            <p className="text-gray-500 font-black uppercase text-sm tracking-widest text-center">No Records Found</p>
+                                            <p className="text-gray-600 font-bold text-xs mt-2 text-center max-w-sm">Click "Create New" to log an item in this category.</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Order Editor Modal */}
+                                {showOrderModal && (
+                                    <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in overflow-y-auto">
+                                        <div className="bg-[#151515] w-full max-w-2xl rounded-[4rem] border border-white/10 shadow-2xl p-10 my-8">
+                                            <div className="flex justify-between items-center mb-8">
+                                                <h2 className={`text-2xl font-black uppercase italic tracking-tighter ${orderCategory === 'Not Arrived Yet' ? 'text-red-500' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'text-yellow-500' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'text-emerald-500' : 'text-orange-500'}`}>{orderEditingId ? 'Edit Record' : 'Create New Record'}</h2>
+                                                <button type="button" onClick={() => setShowOrderModal(false)} className="p-3 text-gray-500 hover:text-white transition-all"><Icon name="x" size={24}/></button>
+                                            </div>
+                                            <form onSubmit={handleSaveOrder} className="space-y-6">
+                                                <div>
+                                                    <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">What it is (Item/Order Title)</label>
+                                                    <input required autoFocus className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white mt-2" value={orderForm.title} onChange={e => setOrderForm({...orderForm, title: e.target.value})} placeholder="E.g., 50x Oak Panels..." />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Notes / Is there something wrong?</label>
+                                                    <textarea required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white mt-2 resize-none" rows="4" value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} placeholder="Describe the order details or any issues..." />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Photographic Evidence</label>
+                                                    <div className="mt-2 flex items-center gap-6 p-6 bg-black/40 border border-white/5 rounded-3xl">
+                                                        <div className="w-32 h-32 bg-black/50 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
+                                                            {orderForm.photo ? <img src={orderForm.photo} className="w-full h-full object-cover" /> : <Icon name="camera" size={32} className="text-gray-600"/>}
+                                                        </div>
+                                                        <div className="flex-1 space-y-3">
+                                                            <p className="text-xs text-gray-400 font-bold">Upload a picture of the invoice, the damaged item, or the delivery slip.</p>
+                                                            <label className="inline-block px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl cursor-pointer font-black text-xs uppercase tracking-widest transition-colors shadow-lg text-white">
+                                                                Upload Image
+                                                                <input type="file" accept="image/*" className="hidden" onChange={handleOrderPhotoUpload} />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button type="submit" className={`w-full mt-4 py-6 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-sm shadow-xl active:scale-95 transition-all ${orderCategory === 'Not Arrived Yet' ? 'bg-red-600 hover:bg-red-500' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'bg-yellow-600 hover:bg-yellow-500' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'}`}>Save Record</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 0.8 KANBAN BOARD SCREEN */}
                         {appMode === 'kanban' && (
                             <div className="animate-in fade-in duration-500 h-full flex flex-col font-sans">
-                                <div className="flex justify-between items-center mb-8">
-                                    <div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Kanban Cards</h2>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Active Production Kanbans</p>
+                                <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                                    <div className="flex items-center gap-4">
+                                        <button type="button" onClick={() => setAppMode('home')} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all">
+                                            <Icon name="arrow-left" size={24} />
+                                        </button>
+                                        <div>
+                                            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Kanban Cards Creator</h2>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Active Production Kanbans</p>
+                                        </div>
                                     </div>
                                     <button type="button" onClick={() => openCardEditor()} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center space-x-3 active:scale-95 transition-all">
                                         <Icon name="user-plus" size={18} /><span>Create Kanban</span>
                                     </button>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 content-start">
-                                    {kanbanCards.map(card => (
-                                        <div key={card.id} className="bg-[#151515] p-6 rounded-[2.5rem] border border-white/5 flex flex-col shadow-2xl relative group hover:border-blue-500/50 transition-all" style={{ borderLeftColor: card.color || '#3b82f6', borderLeftWidth: '4px' }}>
-                                            <div className="flex gap-4">
-                                                <div className="w-24 h-24 rounded-2xl bg-black/50 border border-white/10 overflow-hidden flex-shrink-0">
-                                                    {card.photo ? <img src={card.photo} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-600"><Icon name="camera" size={24}/></div>}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-black text-white uppercase italic text-lg leading-tight line-clamp-2">{card.title}</h4>
-                                                    <p className="text-xs text-blue-500 mt-1 font-bold" style={{ color: card.color || '#3b82f6' }}>P/N: {card.supplierPartNo}</p>
-                                                    <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-widest">Loc: {card.location}</p>
-                                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 flex-1 content-start">
+                                    {kanbanCards.map(task => (
+                                        <div 
+                                            key={task.id} 
+                                            className="bg-[#151515] p-6 rounded-[2.5rem] border border-white/5 flex flex-col shadow-2xl relative group hover:border-blue-500/50 transition-all"
+                                            style={{ borderLeftColor: task.color || '#3b82f6', borderLeftWidth: '4px' }}
+                                        >
+                                            <div className="p-3 text-white rounded-xl w-fit mb-4" style={{ backgroundColor: task.color || '#3b82f6' }}>
+                                                <Icon name="kanban" size={24} />
                                             </div>
-                                            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between">
-                                                <button type="button" onClick={() => handlePrintKanban(card)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"><Icon name="printer" size={14}/> Print Card</button>
-                                                <div className="flex gap-2">
-                                                    <button type="button" onClick={() => openCardEditor(card)} className="p-2 text-gray-500 hover:text-blue-500 transition-colors"><Icon name="edit-3" size={18}/></button>
-                                                    <button type="button" onClick={() => { if(confirm('Delete this Kanban?')) { if(isCloudLive) db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban').doc(card.id).delete(); else setKanbanCards(prev => prev.filter(c => c.id !== card.id)); } }} className="p-2 text-gray-500 hover:text-red-500 transition-colors"><Icon name="trash-2" size={18}/></button>
-                                                </div>
+                                            <h4 className="font-black text-white uppercase italic text-lg leading-tight">{task.title}</h4>
+                                            {task.description && <p className="text-xs text-gray-500 mt-3 font-bold leading-relaxed">{task.description}</p>}
+                                            
+                                            <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mt-6">Created: {new Date(task.createdAt).toLocaleDateString()}</p>
+                                            
+                                            <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button type="button" onClick={() => handlePrintKanban(task)} className="p-2 bg-black/50 text-blue-400 hover:text-blue-300 rounded-full" title="Print Card"><Icon name="printer" size={16}/></button>
+                                                <button type="button" onClick={() => openCardEditor(task)} className="p-2 bg-black/50 text-gray-400 hover:text-white rounded-full"><Icon name="edit-3" size={16}/></button>
+                                                <button type="button" onClick={() => { if(confirm('Delete this Kanban?')) { if(isCloudLive) db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('kanban').doc(task.id).delete(); else setKanbanCards(prev => prev.filter(c => c.id !== task.id)); } }} className="p-2 bg-black/50 text-gray-400 hover:text-red-500 rounded-full"><Icon name="trash-2" size={16}/></button>
                                             </div>
                                         </div>
                                     ))}
@@ -810,7 +1062,7 @@
 
                                 {/* Kanban Card Editor Modal */}
                                 {showCardEditor && (
-                                    <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in overflow-y-auto">
+                                    <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in overflow-y-auto">
                                         <div className="bg-[#151515] w-full max-w-4xl rounded-[4rem] border border-white/10 shadow-2xl p-10 my-8">
                                             <div className="flex justify-between items-center mb-8">
                                                 <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">{kanbanEditingId ? 'Edit Kanban Card' : 'Create Kanban Card'}</h2>
@@ -871,8 +1123,8 @@
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Theme Color</label>
                                                             <div className="flex items-center gap-3 mt-1">
-                                                                <input type="color" className="w-14 h-14 bg-black/40 border border-white/5 rounded-2xl p-1 cursor-pointer" value={cardForm.color || '#d9ead3'} onChange={e => setCardForm({...cardForm, color: e.target.value})} />
-                                                                <span className="text-xs font-mono font-bold text-gray-400">{cardForm.color || '#d9ead3'}</span>
+                                                                <input type="color" className="w-14 h-14 bg-black/40 border border-white/5 rounded-2xl p-1 cursor-pointer" value={cardForm.color || '#c2f0b9'} onChange={e => setCardForm({...cardForm, color: e.target.value})} />
+                                                                <span className="text-xs font-mono font-bold text-gray-400">{cardForm.color || '#c2f0b9'}</span>
                                                             </div>
                                                         </div>
                                                         <div>
@@ -1282,7 +1534,7 @@
                                     <div className="grid grid-cols-2 gap-6">
                                         <button 
                                             type="button"
-                                            onClick={() => { setPendingAction('time_off_out'); setView('supervisor_approval'); }}
+                                            onClick={() => { setPendingAction('time_off_out'); setView('personal_pin_entry'); }}
                                             disabled={selectedEmployee.status !== 'In' || !timeOffReason.trim()}
                                             className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status === 'In' && timeOffReason.trim() ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                         >
@@ -1291,7 +1543,7 @@
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => { setPendingAction('time_off_in'); setView('supervisor_approval'); }}
+                                            onClick={() => { setPendingAction('time_off_in'); setView('personal_pin_entry'); }}
                                             disabled={selectedEmployee.status === 'In'}
                                             className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status !== 'In' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                         >
@@ -1484,13 +1736,13 @@
                         {view === 'personal_pin_entry' && selectedEmployee && (
                            <div className="fixed inset-0 z-[200] bg-[#0c0c0c] flex flex-col items-center justify-center animate-in slide-in-from-bottom-20">
                                <div className="bg-[#151515] p-12 rounded-[5rem] border border-white/10 text-center w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.8)]">
-                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
-                                       <Icon name="key-round" size={60} />
+                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : pendingAction.includes('time_off') ? 'bg-purple-500/10 text-purple-500 shadow-xl shadow-purple-500/10' : pendingAction === 'borrow_money' ? 'bg-emerald-500/10 text-emerald-500 shadow-xl shadow-emerald-500/10' : pendingAction === 'archive' ? 'bg-red-500/10 text-red-500 shadow-xl shadow-red-500/10' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
+                                       <Icon name={pendingAction === 'archive' ? 'archive' : 'key-round'} size={60} />
                                    </div>
                                    <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-1 text-white italic text-center">Authorization Check</h2>
                                    <p className="text-gray-500 text-[11px] font-black uppercase mb-12 tracking-widest italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
                                    <div className="flex justify-center space-x-6 mb-16">
-                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
+                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : pendingAction.includes('time_off') ? 'bg-purple-500 shadow-[0_0_20px_#a855f7]' : pendingAction === 'borrow_money' ? 'bg-emerald-500 shadow-[0_0_20px_#10b981]' : pendingAction === 'archive' ? 'bg-red-500 shadow-[0_0_20px_#ef4444]' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
                                    </div>
                                    <div className="grid grid-cols-3 gap-4 mb-4">
                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
@@ -1508,7 +1760,7 @@
                                            }} className={`h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all active:bg-blue-600`}>{n}</button>
                                        ))}
                                    </div>
-                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? 'bg-blue-600 text-white shadow-xl' : 'bg-white/5 text-gray-600'}`}>OK</button>
+                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? (pendingAction.includes('time_off') ? 'bg-purple-600 text-white shadow-xl' : pendingAction === 'borrow_money' ? 'bg-emerald-600 text-white shadow-xl' : pendingAction === 'archive' ? 'bg-red-600 text-white shadow-xl' : 'bg-blue-600 text-white shadow-xl') : 'bg-white/5 text-gray-600'}`}>OK</button>
                                </div>
                            </div>
                         )}
@@ -1735,11 +1987,8 @@
                                     </thead>
                                     <tbody>
                                         {(() => {
-                                            // Extract standard detailed shifts
                                             const rangeShifts = (printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate);
                                             const shiftDates = new Set(rangeShifts.map(s => s.date));
-                                            
-                                            // Extract old history fallback ONLY for days where specific shift times weren't logged
                                             const rangeHistory = (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate && !shiftDates.has(h.date));
                                             
                                             let combined = [
@@ -1747,7 +1996,6 @@
                                                 ...rangeHistory.map(h => ({ ...h, type: 'history', clockIn: '-', clockOut: '-' }))
                                             ];
 
-                                            // Dynamically inject the currently active shift if they are clocked in
                                             if (printingEmployee.status === 'In' && printingEmployee.shiftStartTime) {
                                                 const shiftStart = new Date(printingEmployee.shiftStartTime);
                                                 const shiftStartStr = getLocalDateString(shiftStart);
@@ -1883,26 +2131,29 @@
                         <div className="w-full mx-auto bg-white text-black border-2 border-black flex flex-col" style={{ maxWidth: printingCard.width ? `${printingCard.width}px` : '800px' }}>
                             
                             {/* PART 1: BIN LABEL */}
-                            <div className="w-full flex flex-col avoid-break">
-                                <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                            <div className="w-full flex flex-col avoid-break border-b-2 border-black">
+                                <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
                                     EXAMPLE KANBAN : {printingCard.title}
                                 </div>
                                 <div className="flex w-full">
-                                    <div className="w-1/3 border-r-2 border-black flex flex-col p-3">
-                                         <div className="flex-1 flex justify-center items-center h-28">
-                                             {printingCard.photo ? <img src={printingCard.photo} className="max-h-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
+                                    <div className="w-1/3 border-r-2 border-black flex flex-col p-3 items-center justify-center">
+                                         <div className="w-full h-32 flex justify-center items-center">
+                                             {printingCard.photo ? <img src={printingCard.photo} className="max-h-full max-w-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
                                          </div>
-                                         <div className="w-full mt-2 border-2 border-black p-1 text-center font-black text-xs uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                         <div className="w-full mt-3 border-2 border-black p-1 text-center font-black text-[10px] uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
                                              LOCATION: {printingCard.location}
                                          </div>
                                     </div>
                                     <div className="w-2/3">
                                          <table className="w-full text-xs font-black border-collapse h-full">
                                              <tbody>
-                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 border-r-2">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-3">{printingCard.supplierPartNo}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 border-r-2">SUPPLIER</td><td className="border-b-2 border-black p-3">{printingCard.supplier}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 border-r-2 bg-white">OUR PART NO.</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.partNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 border-r-2 bg-white">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.supplierPartNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 border-r-2 bg-white">USED FOR</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.usedFor}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 border-r-2 bg-white">SUPPLIER</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.supplier}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER WHEN</td><td className="border-b-2 border-black p-3 bg-[#fff2cc]">{printingCard.orderWhen}</td></tr>
                                                  <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-3 bg-[#fff2cc] text-red-600 text-lg">{printingCard.orderQty}</td></tr>
-                                                 <tr><td className="p-3 border-r-2">DELIVERY TIME</td><td className="p-3">{printingCard.deliveryTime}</td></tr>
+                                                 <tr><td className="p-3 border-r-2 bg-white">DELIVERY TIME</td><td className="p-3 bg-white">{printingCard.deliveryTime}</td></tr>
                                              </tbody>
                                          </table>
                                     </div>
@@ -1910,31 +2161,31 @@
                             </div>
 
                             {/* CUT LINE */}
-                            <div className="w-full border-t-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
+                            <div className="w-full border-b-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
                                 <span>✂️ CUT</span><span>✂️ CUT</span>
                             </div>
 
                             {/* PART 2: FRONT CARD */}
-                            <div className="w-full flex flex-col avoid-break">
-                                <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                            <div className="w-full flex flex-col avoid-break border-b-2 border-black">
+                                <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
                                     EXAMPLE KANBAN : {printingCard.title}
                                 </div>
                                 <div className="flex w-full">
-                                    <div className="w-1/3 border-r-2 border-black flex flex-col p-3">
-                                         <div className="flex-1 flex justify-center items-center h-28">
-                                             {printingCard.photo ? <img src={printingCard.photo} className="max-h-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
+                                    <div className="w-1/3 border-r-2 border-black flex flex-col p-3 items-center justify-center">
+                                         <div className="w-full h-32 flex justify-center items-center">
+                                             {printingCard.photo ? <img src={printingCard.photo} className="max-h-full max-w-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
                                          </div>
-                                         <div className="w-full mt-2 border-2 border-black p-1 text-center font-black text-xs uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                         <div className="w-full mt-3 border-2 border-black p-1 text-center font-black text-[10px] uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
                                              LOCATION: {printingCard.location}
                                          </div>
                                     </div>
                                     <div className="w-2/3">
                                          <table className="w-full text-xs font-black border-collapse h-full">
                                              <tbody>
-                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 border-r-2">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-3">{printingCard.supplierPartNo}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 border-r-2">SUPPLIER</td><td className="border-b-2 border-black p-3">{printingCard.supplier}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-3 bg-[#fff2cc] text-red-600 text-lg">{printingCard.orderQty}</td></tr>
-                                                 <tr><td className="p-3 border-r-2">DELIVERY TIME</td><td className="p-3">{printingCard.deliveryTime}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-4 w-1/3 border-r-2 bg-white">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplierPartNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-4 border-r-2 bg-white">SUPPLIER</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplier}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-4 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 bg-[#fff2cc] text-red-600 text-2xl">{printingCard.orderQty}</td></tr>
+                                                 <tr><td className="p-4 border-r-2 bg-white">DELIVERY TIME</td><td className="p-4 bg-white text-lg">{printingCard.deliveryTime}</td></tr>
                                              </tbody>
                                          </table>
                                     </div>
@@ -1942,45 +2193,45 @@
                             </div>
 
                             {/* FOLD LINE */}
-                            <div className="w-full border-t-2 border-black flex justify-center items-center py-2 bg-gray-200 text-xs font-black tracking-[0.3em]">
+                            <div className="w-full border-b-2 border-black flex justify-center items-center py-2 bg-gray-200 text-xs font-black tracking-[0.3em]">
                                 ⤻ FOLD HERE ⤻
                             </div>
 
                             {/* PART 3: BACK CARD (PULLED) */}
-                            <div className="w-full flex avoid-break">
-                                <div className="w-1/2 border-r-2 border-black flex flex-col items-center justify-center p-6">
+                            <div className="w-full flex avoid-break border-b-2 border-black">
+                                <div className="w-1/2 border-r-2 border-black flex flex-col items-center justify-center p-8 bg-white">
                                      <h2 className="text-5xl font-black text-red-600 uppercase tracking-widest mb-2">PULLED</h2>
                                      <h2 className="text-3xl font-black text-red-600 uppercase tracking-widest">KANBAN</h2>
                                 </div>
-                                <div className="w-1/2 flex flex-col">
+                                <div className="w-1/2 flex flex-col bg-white">
                                      <table className="w-full text-sm font-black border-b-2 border-black">
                                          <tbody>
-                                             <tr><td className="border-b-2 border-black p-4 w-1/2 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 bg-[#fff2cc] text-red-600 text-xl">{printingCard.orderQty}</td></tr>
-                                             <tr><td className="p-4 border-r-2">DELIVERY TIME</td><td className="p-4 text-lg">{printingCard.deliveryTime}</td></tr>
+                                             <tr><td className="border-b-2 border-black p-5 w-1/2 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-5 bg-[#fff2cc] text-red-600 text-2xl text-center">{printingCard.orderQty}</td></tr>
+                                             <tr><td className="p-5 border-r-2 bg-white">DELIVERY TIME</td><td className="p-5 bg-white text-lg text-center">{printingCard.deliveryTime}</td></tr>
                                          </tbody>
                                      </table>
                                      <div className="p-4 text-xs font-black uppercase bg-gray-50 flex-1 flex flex-col justify-center">
                                          <span className="text-gray-500 mb-1">CONTACT DETAILS / NOTES:</span>
-                                         <span>{printingCard.contactDetails || 'NA'}</span>
+                                         <span className="text-sm">{printingCard.contactDetails || 'NA'}</span>
                                      </div>
                                 </div>
                             </div>
 
                             {/* CUT LINE */}
-                            <div className="w-full border-t-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
+                            <div className="w-full border-b-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
                                 <span>✂️ CUT</span><span>✂️ CUT</span>
                             </div>
 
                             {/* PART 4: QR CODE REORDER */}
-                            <div className="w-full flex avoid-break">
-                                <div className="w-1/2 border-r-2 border-black p-6 flex flex-col justify-center" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
-                                    <h3 className="font-black uppercase text-2xl mb-2">{printingCard.title}</h3>
-                                    <p className="text-sm font-bold uppercase mb-1">Supplier: {printingCard.supplier}</p>
-                                    <p className="text-sm font-bold uppercase text-red-600">Reorder Qty: {printingCard.orderQty}</p>
+                            <div className="w-full flex avoid-break bg-white">
+                                <div className="w-1/2 border-r-2 border-black p-8 flex flex-col justify-center" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
+                                    <h3 className="font-black uppercase text-3xl mb-2">{printingCard.title}</h3>
+                                    <p className="text-lg font-bold uppercase mb-1">Supplier: {printingCard.supplier}</p>
+                                    <p className="text-lg font-bold uppercase text-red-600">Reorder Qty: {printingCard.orderQty}</p>
                                 </div>
-                                <div className="w-1/2 p-6 flex flex-col items-center justify-center">
-                                    <p className="text-xs font-black uppercase mb-2 tracking-widest text-center">Scan to Reorder</p>
-                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} alt="QR Code" className="w-24 h-24 object-contain" />
+                                <div className="w-1/2 p-8 flex flex-col items-center justify-center">
+                                    <p className="text-sm font-black uppercase mb-3 tracking-widest text-center">Scan to Reorder</p>
+                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`REORDER KANBAN\nItem: ${printingCard.title}\nSupplier P/N: ${printingCard.supplierPartNo}\nOrder Qty: ${printingCard.orderQty}`)}`} alt="QR Code" className="w-32 h-32 object-contain" />
                                 </div>
                             </div>
 
