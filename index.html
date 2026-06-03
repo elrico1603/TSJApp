@@ -67,24 +67,19 @@
             table { page-break-inside: auto; }
         }
 
-        /* Background Watermark styling */
         .bg-watermark {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            /* 
-               IMPORTANT: Replace the URL below with the direct link to your uploaded image on GitHub.
-               For example: url('background.jpg')
-            */
             background-image: url('https://raw.githubusercontent.com/elrico1603/TSJApp/main/background.jpg'); 
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            opacity: 0.15; /* Adjust this value (0.0 to 1.0) to make the watermark more or less visible */
-            z-index: -1; /* Ensures it stays behind all content */
-            pointer-events: none; /* Prevents the image from interfering with clicks */
+            opacity: 0.15; 
+            z-index: -1; 
+            pointer-events: none; 
         }
     </style>
 </head>
@@ -132,9 +127,6 @@
             }
         };
 
-        // ==========================================
-        // SECTION: ICON LIBRARY
-        // ==========================================
         const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
             const icons = {
                 'hard-hat': <Fragment><path d="M2 18V9.5a5.5 5.5 0 0 1 11 0V18a2 2 0 1 1-4 0v-2H5v2a2 2 0 1 1-4 0Zm12 0a2 2 0 1 0 4 0v-8a2 2 0 1 0-4 0v8Z"/><circle cx="10" cy="6" r="1"/><path d="M12 11h3"/></Fragment>,
@@ -166,14 +158,7 @@
                 'file-text': <Fragment><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></Fragment>,
                 'check-circle': <Fragment><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Fragment>,
                 'home': <Fragment><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Fragment>,
-                'kanban': <Fragment><path d="M4 4h4v16H4z"/><path d="M10 4h4v10h-4z"/><path d="M16 4h4v14h-4z"/></Fragment>,
-                'bell': <Fragment><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></Fragment>,
-                'settings': <Fragment><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Fragment>,
-                'layout-template': <Fragment><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></Fragment>,
-                'activity': <Fragment><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></Fragment>,
-                'package': <Fragment><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></Fragment>,
-                'truck': <Fragment><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></Fragment>,
-                'rotate-ccw': <Fragment><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></Fragment>
+                'kanban': <Fragment><path d="M4 4h4v16H4z"/><path d="M10 4h4v10h-4z"/><path d="M16 4h4v14h-4z"/></Fragment>
             };
             return (
                 <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -197,7 +182,6 @@
             const [pinInput, setPinInput] = useState('');
             const [view, setView] = useState('dashboard'); 
             const [selectedEmployee, setSelectedEmployee] = useState(null);
-            const [targetAdminMode, setTargetAdminMode] = useState(null); // Used to remember where to route after PIN success
             
             // Kanban State
             const [kanbanCards, setKanbanCards] = useState([]);
@@ -206,14 +190,6 @@
             const [cardForm, setCardForm] = useState(initialCardForm);
             const [printingCard, setPrintingCard] = useState(null);
             const [kanbanEditingId, setKanbanEditingId] = useState(null);
-
-            // Ordering Management State
-            const [orders, setOrders] = useState([]);
-            const [showOrderModal, setShowOrderModal] = useState(false);
-            const [orderCategory, setOrderCategory] = useState('Not Arrived Yet');
-            const initialOrderForm = { title: '', notes: '', photo: '', status: 'Not Arrived Yet' };
-            const [orderForm, setOrderForm] = useState(initialOrderForm);
-            const [orderEditingId, setOrderEditingId] = useState(null);
 
             // Clocking & Actions State
             const [lastClockResult, setLastClockResult] = useState(null);
@@ -335,12 +311,6 @@
                               if (!snap.empty) setKanbanCards(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
                               else setKanbanCards([]); 
                           });
-                        // Listen for Ordering Data
-                        db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders')
-                          .onSnapshot(snap => { 
-                              if (!snap.empty) setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }))); 
-                              else setOrders([]); 
-                          });
                     } else { try { await auth.signInAnonymously(); } catch (e) {} }
                 });
                 const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -422,59 +392,7 @@
             };
 
             // ==========================================
-            // SECTION 5: ORDERING MANAGEMENT LOGIC
-            // ==========================================
-            const handleSaveOrder = async (e) => {
-                e.preventDefault();
-                if (!orderForm.title.trim()) return;
-                
-                const newOrder = {
-                    ...orderForm,
-                    updatedAt: new Date().toISOString()
-                };
-
-                if (isCloudLive) {
-                    if (orderEditingId) {
-                        await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders').doc(orderEditingId).update(newOrder);
-                    } else {
-                        await db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders').add({...newOrder, createdAt: new Date().toISOString()});
-                    }
-                } else {
-                    if (orderEditingId) {
-                        setOrders(prev => prev.map(o => o.id === orderEditingId ? { ...o, ...newOrder } : o));
-                    } else {
-                        setOrders(prev => [...prev, { id: Date.now().toString(), ...newOrder, createdAt: new Date().toISOString() }]);
-                    }
-                }
-                
-                setShowOrderModal(false);
-                setOrderEditingId(null);
-                setOrderForm({ title: '', notes: '', photo: '', status: orderCategory });
-                announce('Order record saved');
-            };
-
-            const handleOrderPhotoUpload = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setOrderForm({...orderForm, photo: reader.result});
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const openOrderEditor = (order = null) => {
-                if (order) {
-                    setOrderForm(order);
-                    setOrderEditingId(order.id);
-                } else {
-                    setOrderForm({ title: '', notes: '', photo: '', status: orderCategory });
-                    setOrderEditingId(null);
-                }
-                setShowOrderModal(true);
-            };
-
-            // ==========================================
-            // SECTION 6: SECURE PIN PAD LOGIC
+            // SECTION 5: SECURE PIN PAD LOGIC
             // ==========================================
             const handleAdminPin = (digit) => {
                 if (pinInput.length < 4) {
@@ -484,12 +402,7 @@
 
             const submitAdminPin = () => {
                 if (pinInput === ADMIN_PIN || pinInput === SUPER_USER_PIN) {
-                    setIsLocked(false); 
-                    setShowPinModal(false); 
-                    setPinInput(''); 
-                    setAppMode(targetAdminMode || 'admin'); 
-                    setView('dashboard');
-                    setTargetAdminMode(null);
+                    setIsLocked(false); setShowPinModal(false); setPinInput(''); setAppMode('admin'); setView('dashboard');
                 } else {
                     setAdminPinError(true);
                     setTimeout(() => { setPinInput(''); setAdminPinError(false); }, 800);
@@ -536,7 +449,7 @@
             };
 
             // ==========================================
-            // SECTION 7: HR NOTIFICATION ENGINE
+            // SECTION 6: HR NOTIFICATION ENGINE
             // ==========================================
             const notifyHR = async (subject, htmlBody) => {
                 if (!isCloudLive) return;
@@ -562,7 +475,7 @@
             };
 
             // ==========================================
-            // SECTION 8: SAFE TRANSACTION ENGINES
+            // SECTION 7: SAFE TRANSACTION ENGINES
             // ==========================================
             const processMoneyBorrow = async (emp) => {
                 try {
@@ -867,7 +780,7 @@
                                     <Icon name="bell" size={20} />
                                     <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0c0c0c]"></span>
                                 </button>
-                                <button onClick={() => { setTargetAdminMode('settings'); setShowPinModal(true); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+                                <button onClick={() => { setAppMode('settings'); setShowPinModal(true); }} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all">
                                     <Icon name="settings" size={20} />
                                 </button>
                             </div>
@@ -921,15 +834,7 @@
                                             </div>
                                         </button>
 
-                                        <button type="button" onClick={() => { setAppMode('ordering_menu'); }} className="bg-black/60 p-8 rounded-[2.5rem] border border-transparent hover:border-purple-500/50 transition-all group shadow-2xl flex flex-col items-start gap-4 active:scale-95 text-left">
-                                            <div className="p-4 bg-purple-500/10 text-purple-500 rounded-2xl"><Icon name="package" size={24} /></div>
-                                            <div className="mt-2">
-                                                <h2 className="text-xl font-black uppercase italic tracking-tight text-white mb-1">Ordering Management</h2>
-                                                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">{orders.length} Logged Items</p>
-                                            </div>
-                                        </button>
-
-                                        <button type="button" onClick={() => { setAppMode('kanban'); setView('dashboard'); }} className="bg-black/60 p-8 rounded-[2.5rem] border border-transparent hover:border-blue-500/50 transition-all group shadow-2xl flex flex-col items-start gap-4 active:scale-95 text-left">
+                                        <button type="button" onClick={() => { setAppMode('kanban'); setView('dashboard'); setSelectedEmployee(null); }} className="bg-black/60 p-8 rounded-[2.5rem] border border-transparent hover:border-blue-500/50 transition-all group shadow-2xl flex flex-col items-start gap-4 active:scale-95 text-left">
                                             <div className="p-4 bg-blue-500/10 text-blue-500 rounded-2xl"><Icon name="kanban" size={24} /></div>
                                             <div className="mt-2">
                                                 <h2 className="text-xl font-black uppercase italic tracking-tight text-white mb-1">Kanban Cards Creator</h2>
@@ -1026,143 +931,7 @@
                             </div>
                         )}
 
-                        {/* 0.6 NEW ORDERING MANAGEMENT MENU */}
-                        {appMode === 'ordering_menu' && (
-                            <div className="flex-1 flex flex-col items-center justify-center min-h-[70vh] animate-in zoom-in-95 duration-500 font-sans">
-                                <div className="w-full flex justify-start mb-8 px-8">
-                                    <button type="button" onClick={() => setAppMode('home')} className="p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all flex items-center gap-3 font-black uppercase text-xs tracking-widest">
-                                        <Icon name="arrow-left" size={20} /> Back to Dashboard
-                                    </button>
-                                </div>
-                                <div className="text-center mb-16">
-                                    <div className="p-6 bg-purple-500/10 text-purple-500 rounded-full inline-block mb-6 shadow-[0_0_50px_rgba(168,85,247,0.2)]">
-                                        <Icon name="package" size={80} strokeWidth={1.5} />
-                                    </div>
-                                    <h1 className="text-5xl md:text-6xl font-black uppercase italic tracking-tighter text-white">Ordering Management</h1>
-                                    <p className="text-xl font-bold uppercase tracking-[0.4em] text-gray-500 mt-4 italic">Select Category</p>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl px-8">
-                                    {/* Red Block */}
-                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('Not Arrived Yet'); }} className="bg-red-950/20 p-8 rounded-[3rem] border-2 border-red-500/30 hover:border-red-500 transition-all group shadow-[0_0_30px_rgba(239,68,68,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
-                                        <div className="p-5 bg-red-500/20 text-red-500 rounded-full transition-transform group-hover:scale-110"><Icon name="truck" size={32} /></div>
-                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-red-500">Purchase Orders</h3>
-                                        <p className="text-[10px] text-red-400/70 font-bold uppercase tracking-widest">Not Arrived Yet</p>
-                                    </button>
-
-                                    {/* Yellow Block */}
-                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('Incomplete Invoices \\ Delivery'); }} className="bg-yellow-950/20 p-8 rounded-[3rem] border-2 border-yellow-500/30 hover:border-yellow-500 transition-all group shadow-[0_0_30px_rgba(234,179,8,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
-                                        <div className="p-5 bg-yellow-500/20 text-yellow-500 rounded-full transition-transform group-hover:scale-110"><Icon name="file-text" size={32} /></div>
-                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-yellow-500">Incomplete</h3>
-                                        <p className="text-[10px] text-yellow-400/70 font-bold uppercase tracking-widest">Invoices / Delivery</p>
-                                    </button>
-
-                                    {/* Green Block */}
-                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('Purchase Orders & Deliveries Correct'); }} className="bg-emerald-950/20 p-8 rounded-[3rem] border-2 border-emerald-500/30 hover:border-emerald-500 transition-all group shadow-[0_0_30px_rgba(16,185,129,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
-                                        <div className="p-5 bg-emerald-500/20 text-emerald-500 rounded-full transition-transform group-hover:scale-110"><Icon name="check-circle" size={32} /></div>
-                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-emerald-500">Correct</h3>
-                                        <p className="text-[10px] text-emerald-400/70 font-bold uppercase tracking-widest">Orders & Deliveries</p>
-                                    </button>
-
-                                    {/* Orange Block */}
-                                    <button type="button" onClick={() => { setAppMode('ordering'); setOrderCategory('To Be Returned'); }} className="bg-orange-950/20 p-8 rounded-[3rem] border-2 border-orange-500/30 hover:border-orange-500 transition-all group shadow-[0_0_30px_rgba(249,115,22,0.1)] flex flex-col items-center justify-center gap-4 active:scale-95 text-center">
-                                        <div className="p-5 bg-orange-500/20 text-orange-500 rounded-full transition-transform group-hover:scale-110"><Icon name="rotate-ccw" size={32} /></div>
-                                        <h3 className="text-sm font-black uppercase italic tracking-widest text-orange-500">To Be Returned</h3>
-                                        <p className="text-[10px] text-orange-400/70 font-bold uppercase tracking-widest">Action Required</p>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 0.7 ORDERING CATEGORY LIST VIEW */}
-                        {appMode === 'ordering' && (
-                            <div className="animate-in fade-in duration-500 h-full flex flex-col font-sans">
-                                <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
-                                    <div className="flex items-center gap-4">
-                                        <button type="button" onClick={() => setAppMode('ordering_menu')} className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all">
-                                            <Icon name="arrow-left" size={24} />
-                                        </button>
-                                        <div>
-                                            <h2 className={`text-3xl font-black uppercase italic tracking-tighter ${orderCategory === 'Not Arrived Yet' ? 'text-red-500' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'text-yellow-500' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'text-emerald-500' : 'text-orange-500'}`}>{orderCategory}</h2>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Ordering Management</p>
-                                        </div>
-                                    </div>
-                                    <button type="button" onClick={() => openOrderEditor()} className={`text-white px-8 py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl flex items-center space-x-3 active:scale-95 transition-all ${orderCategory === 'Not Arrived Yet' ? 'bg-red-600' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'bg-yellow-600' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'bg-emerald-600' : 'bg-orange-600'}`}>
-                                        <Icon name="package" size={18} /><span>Create New</span>
-                                    </button>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 content-start">
-                                    {orders.filter(o => o.status === orderCategory).map(order => (
-                                        <div key={order.id} className={`bg-[#151515] p-6 rounded-[2.5rem] border flex flex-col shadow-2xl relative group transition-all ${orderCategory === 'Not Arrived Yet' ? 'border-red-500/20 hover:border-red-500/50' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'border-yellow-500/20 hover:border-yellow-500/50' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'border-emerald-500/20 hover:border-emerald-500/50' : 'border-orange-500/20 hover:border-orange-500/50'}`}>
-                                            <div className="flex gap-4">
-                                                <div className="w-24 h-24 rounded-2xl bg-black/50 border border-white/10 overflow-hidden flex-shrink-0">
-                                                    {order.photo ? <img src={order.photo} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-600"><Icon name="camera" size={24}/></div>}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-black text-white uppercase italic text-lg leading-tight line-clamp-2">{order.title}</h4>
-                                                    {order.notes && <p className="text-xs text-gray-400 mt-2 font-bold line-clamp-3">{order.notes}</p>}
-                                                </div>
-                                            </div>
-                                            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-                                                <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest">Logged: {new Date(order.createdAt).toLocaleDateString()}</p>
-                                                <div className="flex gap-2">
-                                                    <button type="button" onClick={() => openOrderEditor(order)} className="p-2 text-gray-500 hover:text-white transition-colors"><Icon name="edit-3" size={18}/></button>
-                                                    <button type="button" onClick={() => { if(confirm('Delete this record?')) { if(isCloudLive) db.collection('artifacts').doc(APP_ID_PATH).collection('public').doc('data').collection('orders').doc(order.id).delete(); else setOrders(prev => prev.filter(o => o.id !== order.id)); } }} className="p-2 text-gray-500 hover:text-red-500 transition-colors"><Icon name="trash-2" size={18}/></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {orders.filter(o => o.status === orderCategory).length === 0 && (
-                                        <div className="col-span-full flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] p-16 mt-8">
-                                            <div className="p-6 bg-white/5 rounded-full text-gray-600 mb-6"><Icon name="package" size={48} /></div>
-                                            <p className="text-gray-500 font-black uppercase text-sm tracking-widest text-center">No Records Found</p>
-                                            <p className="text-gray-600 font-bold text-xs mt-2 text-center max-w-sm">Click "Create New" to log an item in this category.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Order Editor Modal */}
-                                {showOrderModal && (
-                                    <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-3xl flex items-center justify-center p-8 animate-in fade-in overflow-y-auto">
-                                        <div className="bg-[#151515] w-full max-w-2xl rounded-[4rem] border border-white/10 shadow-2xl p-10 my-8">
-                                            <div className="flex justify-between items-center mb-8">
-                                                <h2 className={`text-2xl font-black uppercase italic tracking-tighter ${orderCategory === 'Not Arrived Yet' ? 'text-red-500' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'text-yellow-500' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'text-emerald-500' : 'text-orange-500'}`}>{orderEditingId ? 'Edit Record' : 'Create New Record'}</h2>
-                                                <button type="button" onClick={() => setShowOrderModal(false)} className="p-3 text-gray-500 hover:text-white transition-all"><Icon name="x" size={24}/></button>
-                                            </div>
-                                            <form onSubmit={handleSaveOrder} className="space-y-6">
-                                                <div>
-                                                    <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">What it is (Item/Order Title)</label>
-                                                    <input required autoFocus className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white mt-2" value={orderForm.title} onChange={e => setOrderForm({...orderForm, title: e.target.value})} placeholder="E.g., 50x Oak Panels..." />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Notes / Is there something wrong?</label>
-                                                    <textarea required className="w-full bg-black/40 border border-white/5 rounded-2xl p-5 font-bold outline-none focus:border-blue-500 transition-all text-white mt-2 resize-none" rows="4" value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} placeholder="Describe the order details or any issues..." />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-black uppercase text-gray-600 ml-4 italic">Photographic Evidence</label>
-                                                    <div className="mt-2 flex items-center gap-6 p-6 bg-black/40 border border-white/5 rounded-3xl">
-                                                        <div className="w-32 h-32 bg-black/50 border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner">
-                                                            {orderForm.photo ? <img src={orderForm.photo} className="w-full h-full object-cover" /> : <Icon name="camera" size={32} className="text-gray-600"/>}
-                                                        </div>
-                                                        <div className="flex-1 space-y-3">
-                                                            <p className="text-xs text-gray-400 font-bold">Upload a picture of the invoice, the damaged item, or the delivery slip.</p>
-                                                            <label className="inline-block px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl cursor-pointer font-black text-xs uppercase tracking-widest transition-colors shadow-lg text-white">
-                                                                Upload Image
-                                                                <input type="file" accept="image/*" className="hidden" onChange={handleOrderPhotoUpload} />
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button type="submit" className={`w-full mt-4 py-6 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-sm shadow-xl active:scale-95 transition-all ${orderCategory === 'Not Arrived Yet' ? 'bg-red-600 hover:bg-red-500' : orderCategory === 'Incomplete Invoices \\ Delivery' ? 'bg-yellow-600 hover:bg-yellow-500' : orderCategory === 'Purchase Orders & Deliveries Correct' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-orange-600 hover:bg-orange-500'}`}>Save Record</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* 0.8 KANBAN BOARD SCREEN */}
+                        {/* 0.5 NEW KANBAN BOARD SCREEN */}
                         {appMode === 'kanban' && (
                             <div className="animate-in fade-in duration-500 h-full flex flex-col font-sans">
                                 <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
@@ -1180,7 +949,7 @@
                                     </button>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 flex-1 content-start">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 content-start">
                                     {kanbanCards.map(card => (
                                         <div key={card.id} className="bg-[#151515] p-6 rounded-[2.5rem] border border-white/5 flex flex-col shadow-2xl relative group hover:border-blue-500/50 transition-all" style={{ borderLeftColor: card.color || '#3b82f6', borderLeftWidth: '4px' }}>
                                             <div className="flex gap-4">
@@ -1283,10 +1052,6 @@
                                                         <div>
                                                             <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Print Width (px)</label>
                                                             <input type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.width || '800'} onChange={e => setCardForm({...cardForm, width: e.target.value})} placeholder="800" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] font-black uppercase text-gray-600 ml-2 italic">Print Length (px)</label>
-                                                            <input type="number" className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 font-bold outline-none focus:border-blue-500 transition-all text-white mt-1" value={cardForm.height || ''} onChange={e => setCardForm({...cardForm, height: e.target.value})} placeholder="Auto" />
                                                         </div>
                                                     </div>
 
@@ -1644,7 +1409,7 @@
                                        <div className="p-8 bg-emerald-500/10 text-emerald-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="banknote" size={60} /></div>
                                        <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Money<br/>Borrowed</span>
                                    </button>
-                                   <button type="button" onClick={() => { setPendingAction('archive'); setView('supervisor_approval'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
+                                   <button type="button" onClick={() => { setPendingAction('archive'); setView('personal_pin_entry'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
                                        <div className="p-8 bg-red-500/10 text-red-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="archive" size={60} /></div>
                                        <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Archive<br/>Profile</span>
                                    </button>
@@ -1687,7 +1452,7 @@
                                     <div className="grid grid-cols-2 gap-6">
                                         <button 
                                             type="button"
-                                            onClick={() => { setPendingAction('time_off_out'); setView('personal_pin_entry'); }}
+                                            onClick={() => { setPendingAction('time_off_out'); setView('supervisor_approval'); }}
                                             disabled={selectedEmployee.status !== 'In' || !timeOffReason.trim()}
                                             className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status === 'In' && timeOffReason.trim() ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                         >
@@ -1696,7 +1461,7 @@
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => { setPendingAction('time_off_in'); setView('personal_pin_entry'); }}
+                                            onClick={() => { setPendingAction('time_off_in'); setView('supervisor_approval'); }}
                                             disabled={selectedEmployee.status === 'In'}
                                             className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status !== 'In' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                         >
@@ -1813,7 +1578,7 @@
 
                                     <button 
                                         type="button"
-                                        onClick={() => { setPendingAction('borrow_money'); setView('personal_pin_entry'); }}
+                                        onClick={() => { setPendingAction('borrow_money'); setView('supervisor_approval'); }}
                                         disabled={!borrowAmount || borrowAmount <= 0 || !borrowReason.trim() || !borrowMethod || !capturedBorrowPhoto}
                                         className={`w-full p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all italic ${borrowAmount > 0 && borrowReason.trim() && borrowMethod && capturedBorrowPhoto ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                     >
@@ -1889,13 +1654,13 @@
                         {view === 'personal_pin_entry' && selectedEmployee && (
                            <div className="fixed inset-0 z-[200] bg-[#0c0c0c] flex flex-col items-center justify-center animate-in slide-in-from-bottom-20">
                                <div className="bg-[#151515] p-12 rounded-[5rem] border border-white/10 text-center w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.8)]">
-                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : pendingAction.includes('time_off') ? 'bg-purple-500/10 text-purple-500 shadow-xl shadow-purple-500/10' : pendingAction === 'borrow_money' ? 'bg-emerald-500/10 text-emerald-500 shadow-xl shadow-emerald-500/10' : pendingAction === 'archive' ? 'bg-red-500/10 text-red-500 shadow-xl shadow-red-500/10' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
-                                       <Icon name={pendingAction === 'archive' ? 'archive' : 'key-round'} size={60} />
+                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
+                                       <Icon name="key-round" size={60} />
                                    </div>
                                    <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-1 text-white italic text-center">Authorization Check</h2>
                                    <p className="text-gray-500 text-[11px] font-black uppercase mb-12 tracking-widest italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
                                    <div className="flex justify-center space-x-6 mb-16">
-                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : pendingAction.includes('time_off') ? 'bg-purple-500 shadow-[0_0_20px_#a855f7]' : pendingAction === 'borrow_money' ? 'bg-emerald-500 shadow-[0_0_20px_#10b981]' : pendingAction === 'archive' ? 'bg-red-500 shadow-[0_0_20px_#ef4444]' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
+                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
                                    </div>
                                    <div className="grid grid-cols-3 gap-4 mb-4">
                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
@@ -1913,7 +1678,7 @@
                                            }} className={`h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all active:bg-blue-600`}>{n}</button>
                                        ))}
                                    </div>
-                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? (pendingAction.includes('time_off') ? 'bg-purple-600 text-white shadow-xl' : pendingAction === 'borrow_money' ? 'bg-emerald-600 text-white shadow-xl' : pendingAction === 'archive' ? 'bg-red-600 text-white shadow-xl' : 'bg-blue-600 text-white shadow-xl') : 'bg-white/5 text-gray-600'}`}>OK</button>
+                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? 'bg-blue-600 text-white shadow-xl' : 'bg-white/5 text-gray-600'}`}>OK</button>
                                </div>
                            </div>
                         )}
@@ -2045,7 +1810,6 @@
                             {!isLocked && (
                                 <div className="flex items-center space-x-3 border-l border-white/10 pl-3 animate-in slide-in-from-left-10 duration-500">
                                     <NavItem icon="kanban" tooltip="Kanban Cards" active={appMode === 'kanban'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('kanban'); setView('dashboard'); setSelectedEmployee(null); }} />
-                                    <NavItem icon="package" tooltip="Ordering Management" active={appMode === 'ordering_menu'} colorClass="bg-purple-600 text-white shadow-lg shadow-purple-600/20" onClick={() => setAppMode('ordering_menu')} />
                                     <NavItem icon="users" tooltip="Staff Registry & Enrollment" active={appMode === 'admin'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('admin'); setView('dashboard'); }} />
                                     <NavItem icon="bar-chart-3" tooltip="Labor & Work Analytics" active={appMode === 'analytics'} colorClass="bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" onClick={() => { setAppMode('analytics'); setView('dashboard'); }} />
                                     <NavItem icon="banknote" tooltip="Payroll Processing" active={appMode === 'payroll'} colorClass="bg-amber-500 text-white shadow-lg shadow-amber-500/20" onClick={() => setAppMode('payroll')} />
@@ -2079,12 +1843,9 @@
 
                 {/* --- HARDCOPY PDF EXPORT ENGINE OVERLAY --- */}
                 {printingEmployee && (
-                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-10 flex flex-col items-center not-italic font-sans">
-                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
-                            💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
-                        </div>
-                        <div id="pdf-export-container" className="bg-white text-black p-12 font-sans w-full max-w-4xl">
-                            <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end avoid-break">
+                    <div className="absolute inset-0 z-[9999] min-h-screen bg-gray-200 p-8 not-italic flex justify-center no-print">
+                        <div id="pdf-export-container" className="bg-white text-black p-12 font-sans w-full max-w-4xl shadow-xl">
+                            <div className="border-b-2 border-black pb-6 mb-8 flex justify-between items-end">
                                 <div>
                                     <h1 className="text-4xl font-black uppercase tracking-tighter">TimberSmith Joinery</h1>
                                     <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mt-1">Labor Archive Summary</p>
@@ -2095,7 +1856,7 @@
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-8 mb-8 border border-gray-300 p-6 rounded-2xl avoid-break">
+                            <div className="grid grid-cols-2 gap-8 mb-8 border border-gray-300 p-6 rounded-2xl">
                                 <div>
                                     <p className="text-xs font-bold uppercase text-gray-500">Artisan Details</p>
                                     <p className="text-2xl font-black uppercase mt-1">{printingEmployee.name} {printingEmployee.surname}</p>
@@ -2109,7 +1870,7 @@
                                 </div>
                             </div>
 
-                            <div className="mb-8 avoid-break">
+                            <div className="mb-8">
                                 <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Hours Verification Summary</h3>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="bg-gray-100 p-4 rounded-xl text-center">
@@ -2127,12 +1888,11 @@
                                 </div>
                             </div>
 
-                            {/* Section 1: Itemized Shift & Clocking History */}
-                            <div className="mb-8">
-                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Itemized Shift & Clocking History</h3>
+                            <div className="mb-12">
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2">Itemized Shift & Clocking History</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
                                             <th className="p-3 border border-gray-300 font-bold">Date</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Clock In</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Clock Out</th>
@@ -2144,7 +1904,7 @@
                                             .filter(s => s.date >= startDate && s.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((s, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                            <tr key={i}>
                                                 <td className="p-3 border border-gray-300">{s.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{s.clockIn}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{s.clockOut}</td>
@@ -2156,7 +1916,7 @@
                                             .filter(h => h.date >= startDate && h.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((h, i) => (
-                                            <tr key={`hist-${i}`} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                            <tr key={`hist-${i}`}>
                                                 <td className="p-3 border border-gray-300">{h.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
                                                 <td className="p-3 border border-gray-300 text-center text-gray-400">-</td>
@@ -2165,7 +1925,7 @@
                                         ))}
 
                                         {((printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate).length === 0 && (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
+                                            <tr><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No labor hours recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -2173,10 +1933,10 @@
 
                             {/* Section 2: Money Borrowed / Cash Advances */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Money Borrowed / Advances</h3>
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-emerald-600">Money Borrowed / Advances</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
                                             <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Amount Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Repayment Terms</th>
@@ -2189,7 +1949,7 @@
                                             .filter(a => a.date >= startDate && a.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((a, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                            <tr key={i}>
                                                 <td className="p-3 border border-gray-300">{a.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono font-bold text-emerald-600">R {a.amount.toLocaleString()}</td>
                                                 <td className="p-3 border border-gray-300 text-center">{a.months} Month(s)</td>
@@ -2202,7 +1962,7 @@
                                             </tr>
                                         ))}
                                         {(!printingEmployee.advances || printingEmployee.advances.filter(a => a.date >= startDate && a.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
+                                            <tr><td colSpan="5" className="p-4 text-center text-gray-500 font-bold">No cash advances borrowed in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -2210,10 +1970,10 @@
 
                             {/* Section 3: Time Off & Breaks History */}
                             <div className="mb-8">
-                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 avoid-break">Time Off / Mid-Shift Breaks</h3>
+                                <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-purple-600">Time Off / Mid-Shift Breaks</h3>
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                        <tr className="bg-gray-100 text-xs uppercase tracking-widest">
                                             <th className="p-3 border border-gray-300 font-bold">Date Requested</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Departure (Left)</th>
                                             <th className="p-3 border border-gray-300 font-bold text-center">Return (Returned)</th>
@@ -2225,7 +1985,7 @@
                                             .filter(b => b.date >= startDate && b.date <= endDate)
                                             .sort((a,b) => a.date > b.date ? 1 : -1)
                                             .map((b, i) => (
-                                            <tr key={i} className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                            <tr key={i}>
                                                 <td className="p-3 border border-gray-300">{b.date}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{b.leftAt}</td>
                                                 <td className="p-3 border border-gray-300 text-center font-mono">{b.returnedAt || 'On-Going Break'}</td>
@@ -2233,21 +1993,21 @@
                                             </tr>
                                         ))}
                                         {(!printingEmployee.breaks || printingEmployee.breaks.filter(b => b.date >= startDate && b.date <= endDate).length === 0) && (
-                                            <tr className="avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
+                                            <tr><td colSpan="4" className="p-4 text-center text-gray-500 font-bold">No time off or breaks recorded in the selected period.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
                             </div>
 
                             {printingEmployee.isArchived && (
-                                <div className="mb-12 avoid-break">
+                                <div className="mb-12">
                                     <h3 className="text-lg font-black uppercase mb-4 border-b border-gray-200 pb-2 text-red-600">Archival Record</h3>
                                     <p className="text-sm"><strong>Archived On:</strong> {printingEmployee.archiveDate}</p>
                                     <p className="text-sm text-red-600 font-bold"><strong>Reason:</strong> {printingEmployee.archiveReason}</p>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-16 mt-20 pt-8 avoid-break">
+                            <div className="grid grid-cols-2 gap-16 mt-20 pt-8">
                                 <div className="text-center">
                                     <div className="border-b border-black mb-2 h-10"></div>
                                     <p className="text-xs font-bold uppercase text-gray-500">Artisan Authorized Signature</p>
@@ -2263,8 +2023,8 @@
 
                 {/* --- KANBAN CARD PRINT OVERLAY --- */}
                 {printingCard && (
-                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-4 flex flex-col items-center not-italic font-sans">
-                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-4 rounded-lg border border-blue-200 w-full max-w-[800px]">
+                    <div className="print-wrapper fixed inset-0 z-[9999] min-h-screen overflow-y-auto bg-white py-10 flex flex-col items-center not-italic font-sans">
+                        <div className="no-print bg-blue-100 text-blue-800 p-3 text-center text-sm font-bold mb-6 rounded-lg border border-blue-200 max-w-2xl w-full">
                             💡 Hint: Print this page using your browser. Select A4 and disable margins for the best result.
                         </div>
 
