@@ -839,7 +839,7 @@
                                     <p className="text-xl font-bold uppercase tracking-[0.4em] text-gray-500 mt-4 italic">Management Dashboard</p>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 w-full max-w-6xl px-8">
+                                <div className={`grid grid-cols-1 ${isLocked ? 'max-w-md' : 'md:grid-cols-2 max-w-4xl'} gap-10 w-full px-8 transition-all duration-500`}>
                                     <button type="button" onClick={() => { setAppMode('employee'); setView('dashboard'); }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-[#ff8c00] transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
                                         <div className="p-8 bg-[#ff8c00]/10 text-[#ff8c00] rounded-full transition-transform group-hover:scale-110">
                                             <Icon name="clock" size={60} />
@@ -848,29 +848,17 @@
                                         <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Time & Attendance</p>
                                     </button>
                                     
-                                    <button type="button" onClick={() => {
-                                        if (isLocked) {
-                                            setTargetAdminMode('kanban');
-                                            setShowPinModal(true);
-                                        } else {
-                                            setAppMode('kanban');
-                                            setView('dashboard');
-                                        }
-                                    }} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-blue-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
-                                        <div className="p-8 bg-blue-500/10 text-blue-500 rounded-full transition-transform group-hover:scale-110">
-                                            <Icon name="kanban" size={60} />
-                                        </div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Kanban Cards Creator</h2>
-                                        <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Project Management</p>
-                                    </button>
-
-                                    <button type="button" onClick={() => setAppMode('ordering_menu')} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-purple-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95">
-                                        <div className="p-8 bg-purple-500/10 text-purple-500 rounded-full transition-transform group-hover:scale-110">
-                                            <Icon name="package" size={60} />
-                                        </div>
-                                        <h2 className="text-3xl font-black uppercase italic tracking-widest text-white">Ordering Management</h2>
-                                        <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Inventory & Supplies</p>
-                                    </button>
+                                    {!isLocked && (
+                                        <Fragment>
+                                            <button type="button" onClick={() => setAppMode('ordering_menu')} className="bg-black/60 p-12 rounded-[4rem] border-2 border-transparent hover:border-purple-500 transition-all group shadow-2xl flex flex-col items-center justify-center gap-6 active:scale-95 animate-in slide-in-from-right-10">
+                                                <div className="p-8 bg-purple-500/10 text-purple-500 rounded-full transition-transform group-hover:scale-110">
+                                                    <Icon name="package" size={60} />
+                                                </div>
+                                                <h2 className="text-3xl font-black uppercase italic tracking-widest text-white text-center">Ordering Management</h2>
+                                                <p className="text-gray-500 text-sm font-bold uppercase tracking-widest">Inventory & Supplies</p>
+                                            </button>
+                                        </Fragment>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -1491,7 +1479,7 @@
                                        <div className="p-8 bg-emerald-500/10 text-emerald-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="banknote" size={60} /></div>
                                        <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Money<br/>Borrowed</span>
                                    </button>
-                                   <button type="button" onClick={() => { setPendingAction('archive'); setView('supervisor_approval'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
+                                   <button type="button" onClick={() => { setPendingAction('archive'); setView('personal_pin_entry'); }} className="bg-black/60 p-10 rounded-[4rem] flex flex-col items-center justify-center gap-6 border-2 border-transparent hover:border-red-500 transition-all group active:scale-95 shadow-xl">
                                        <div className="p-8 bg-red-500/10 text-red-400 rounded-[2.5rem] transition-transform group-hover:scale-110"><Icon name="archive" size={60} /></div>
                                        <span className="font-black uppercase italic text-xl tracking-widest text-white italic text-center">Archive<br/>Profile</span>
                                    </button>
@@ -1534,7 +1522,7 @@
                                     <div className="grid grid-cols-2 gap-6">
                                         <button 
                                             type="button"
-                                            onClick={() => { setPendingAction('time_off_out'); setView('personal_pin_entry'); }}
+                                            onClick={() => { setPendingAction('time_off_out'); setView('supervisor_approval'); }}
                                             disabled={selectedEmployee.status !== 'In' || !timeOffReason.trim()}
                                             className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status === 'In' && timeOffReason.trim() ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                         >
@@ -1543,7 +1531,7 @@
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => { setPendingAction('time_off_in'); setView('personal_pin_entry'); }}
+                                            onClick={() => { setPendingAction('time_off_in'); setView('supervisor_approval'); }}
                                             disabled={selectedEmployee.status === 'In'}
                                             className={`p-6 rounded-[2rem] font-black uppercase tracking-widest text-sm flex flex-col items-center gap-3 transition-all ${selectedEmployee.status !== 'In' ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                                         >
@@ -1736,13 +1724,13 @@
                         {view === 'personal_pin_entry' && selectedEmployee && (
                            <div className="fixed inset-0 z-[200] bg-[#0c0c0c] flex flex-col items-center justify-center animate-in slide-in-from-bottom-20">
                                <div className="bg-[#151515] p-12 rounded-[5rem] border border-white/10 text-center w-full max-w-sm shadow-[0_50px_100px_rgba(0,0,0,0.8)]">
-                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : pendingAction.includes('time_off') ? 'bg-purple-500/10 text-purple-500 shadow-xl shadow-purple-500/10' : pendingAction === 'borrow_money' ? 'bg-emerald-500/10 text-emerald-500 shadow-xl shadow-emerald-500/10' : pendingAction === 'archive' ? 'bg-red-500/10 text-red-500 shadow-xl shadow-red-500/10' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
-                                       <Icon name={pendingAction === 'archive' ? 'archive' : 'key-round'} size={60} />
+                                   <div className={`p-6 rounded-full mb-8 mx-auto w-fit ${personalPinError ? 'bg-red-500/20 text-red-500 animate-shake' : 'bg-blue-500/10 text-blue-500 shadow-xl shadow-blue-500/10'}`}>
+                                       <Icon name="key-round" size={60} />
                                    </div>
                                    <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-1 text-white italic text-center">Authorization Check</h2>
                                    <p className="text-gray-500 text-[11px] font-black uppercase mb-12 tracking-widest italic">{selectedEmployee.name} {selectedEmployee.surname}</p>
                                    <div className="flex justify-center space-x-6 mb-16">
-                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : pendingAction.includes('time_off') ? 'bg-purple-500 shadow-[0_0_20px_#a855f7]' : pendingAction === 'borrow_money' ? 'bg-emerald-500 shadow-[0_0_20px_#10b981]' : pendingAction === 'archive' ? 'bg-red-500 shadow-[0_0_20px_#ef4444]' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
+                                       {[1,2,3,4].map(i => <div key={i} className={`h-4 w-4 rounded-full transition-all duration-300 ${personalPinInput.length >= i ? (personalPinError ? 'bg-red-500' : 'bg-blue-500 shadow-[0_0_20px_#3b82f6]') : 'bg-white/5'}`} />)}
                                    </div>
                                    <div className="grid grid-cols-3 gap-4 mb-4">
                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'X'].map(n => (
@@ -1760,7 +1748,7 @@
                                            }} className={`h-16 bg-white/5 rounded-2xl flex items-center justify-center text-2xl font-black text-white transition-all active:bg-blue-600`}>{n}</button>
                                        ))}
                                    </div>
-                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? (pendingAction.includes('time_off') ? 'bg-purple-600 text-white shadow-xl' : pendingAction === 'borrow_money' ? 'bg-emerald-600 text-white shadow-xl' : pendingAction === 'archive' ? 'bg-red-600 text-white shadow-xl' : 'bg-blue-600 text-white shadow-xl') : 'bg-white/5 text-gray-600'}`}>OK</button>
+                                   <button type="button" onClick={submitPersonalPin} disabled={personalPinInput.length !== 4} className={`w-full h-16 rounded-2xl flex items-center justify-center text-2xl font-black transition-all ${personalPinInput.length === 4 ? 'bg-blue-600 text-white shadow-xl' : 'bg-white/5 text-gray-600'}`}>OK</button>
                                </div>
                            </div>
                         )}
@@ -1887,14 +1875,15 @@
                         <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-3xl p-3 rounded-[3rem] border border-white/10 flex items-center space-x-3 shadow-2xl z-[200] scale-90 md:scale-100 transition-all animate-in slide-in-from-bottom-5 no-print">
                             <NavItem icon="home" tooltip="Main Menu" active={appMode === 'home'} colorClass="bg-white/20 text-white shadow-lg shadow-white/10" onClick={() => { setAppMode('home'); setView('dashboard'); setSelectedEmployee(null); }} />
                             <NavItem icon="clock" tooltip="Clocking Terminal" active={appMode === 'employee'} colorClass="bg-[#ff8c00] text-white shadow-lg shadow-[#ff8c00]/20" onClick={() => { setAppMode('employee'); setView('dashboard'); setSelectedEmployee(null); }} />
-                            <NavItem icon="kanban" tooltip="Kanban Cards" active={appMode === 'kanban'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('kanban'); setView('dashboard'); setSelectedEmployee(null); }} />
                             <div className="w-[1px] h-10 bg-white/10 mx-2" />
                             <NavItem icon={isLocked ? "lock" : "unlock"} tooltip="Access Management Hub" active={!isLocked} colorClass="text-blue-500 bg-blue-500/10 shadow-[0_0_30px_#3b82f622]" onClick={() => isLocked ? setShowPinModal(true) : setIsLocked(true)} />
                             {!isLocked && (
                                 <div className="flex items-center space-x-3 border-l border-white/10 pl-3 animate-in slide-in-from-left-10 duration-500">
                                     <NavItem icon="users" tooltip="Staff Registry & Enrollment" active={appMode === 'admin'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('admin'); setView('dashboard'); }} />
                                     <NavItem icon="bar-chart-3" tooltip="Labor & Work Analytics" active={appMode === 'analytics'} colorClass="bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" onClick={() => { setAppMode('analytics'); setView('dashboard'); }} />
+                                    <NavItem icon="package" tooltip="Ordering Management" active={appMode === 'ordering_menu'} colorClass="bg-purple-600 text-white shadow-lg shadow-purple-600/20" onClick={() => setAppMode('ordering_menu')} />
                                     <NavItem icon="banknote" tooltip="Payroll Processing" active={appMode === 'payroll'} colorClass="bg-amber-500 text-white shadow-lg shadow-amber-500/20" onClick={() => setAppMode('payroll')} />
+                                    <NavItem icon="kanban" tooltip="Kanban Cards" active={appMode === 'kanban'} colorClass="bg-blue-600 text-white shadow-lg shadow-blue-600/20" onClick={() => { setAppMode('kanban'); setView('dashboard'); setSelectedEmployee(null); }} />
                                     <NavItem icon="scale" tooltip="Time Off Node" active={appMode === 'hr'} colorClass="bg-purple-600 text-white shadow-lg shadow-purple-600/20" onClick={() => setAppMode('hr')} />
                                     <NavItem icon="smartphone" tooltip="Mobile Deployment" active={appMode === 'mobile'} colorClass="bg-pink-600 text-white shadow-lg shadow-pink-600/20" onClick={() => setAppMode('mobile')} />
                                 </div>
@@ -1987,8 +1976,11 @@
                                     </thead>
                                     <tbody>
                                         {(() => {
+                                            // Extract standard detailed shifts
                                             const rangeShifts = (printingEmployee.shifts || []).filter(s => s.date >= startDate && s.date <= endDate);
                                             const shiftDates = new Set(rangeShifts.map(s => s.date));
+                                            
+                                            // Extract old history fallback ONLY for days where specific shift times weren't logged
                                             const rangeHistory = (printingEmployee.history || []).filter(h => h.date >= startDate && h.date <= endDate && !shiftDates.has(h.date));
                                             
                                             let combined = [
@@ -1996,6 +1988,7 @@
                                                 ...rangeHistory.map(h => ({ ...h, type: 'history', clockIn: '-', clockOut: '-' }))
                                             ];
 
+                                            // Dynamically inject the currently active shift if they are clocked in
                                             if (printingEmployee.status === 'In' && printingEmployee.shiftStartTime) {
                                                 const shiftStart = new Date(printingEmployee.shiftStartTime);
                                                 const shiftStartStr = getLocalDateString(shiftStart);
@@ -2128,35 +2121,33 @@
                         </div>
 
                         {/* PRINT CONTAINER FOR A4 PAGE */}
-                        <div className="w-full mx-auto bg-white text-black border-2 border-black flex flex-col" style={{ maxWidth: printingCard.width ? `${printingCard.width}px` : '800px' }}>
+                        <div className="w-full mx-auto bg-white text-black flex flex-col" style={{ maxWidth: printingCard.width ? `${printingCard.width}px` : '800px' }}>
                             
                             {/* PART 1: BIN LABEL */}
-                            <div className="w-full flex flex-col avoid-break border-b-2 border-black">
+                            <div className="w-full flex flex-col avoid-break border-2 border-black">
                                 <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                    EXAMPLE KANBAN : {printingCard.title}
+                                    BIN LABEL
                                 </div>
                                 <div className="flex w-full">
                                     <div className="w-1/3 border-r-2 border-black flex flex-col p-3 items-center justify-center">
                                          <div className="w-full h-32 flex justify-center items-center">
                                              {printingCard.photo ? <img src={printingCard.photo} className="max-h-full max-w-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
                                          </div>
-                                         <div className="w-full mt-3 border-2 border-black p-1 text-center font-black text-[10px] uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                    </div>
+                                    <div className="w-2/3 flex flex-col">
+                                         <table className="w-full text-sm font-black border-collapse flex-1">
+                                             <tbody>
+                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 bg-white">SUPPLIER P/NO.</td><td className="border-l-2 border-b-2 border-black p-3 bg-white text-lg">{printingCard.supplierPartNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-3 bg-white">SUPPLIER</td><td className="border-l-2 border-b-2 border-black p-3 bg-white text-lg">{printingCard.supplier}</td></tr>
+                                             </tbody>
+                                         </table>
+                                         <div className="w-full p-2 text-center font-black text-xs uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
                                              LOCATION: {printingCard.location}
                                          </div>
                                     </div>
-                                    <div className="w-2/3">
-                                         <table className="w-full text-xs font-black border-collapse h-full">
-                                             <tbody>
-                                                 <tr><td className="border-b-2 border-black p-3 w-1/3 border-r-2 bg-white">OUR PART NO.</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.partNo}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 border-r-2 bg-white">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.supplierPartNo}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 border-r-2 bg-white">USED FOR</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.usedFor}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 border-r-2 bg-white">SUPPLIER</td><td className="border-b-2 border-black p-3 bg-white">{printingCard.supplier}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER WHEN</td><td className="border-b-2 border-black p-3 bg-[#fff2cc]">{printingCard.orderWhen}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-3 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-3 bg-[#fff2cc] text-red-600 text-lg">{printingCard.orderQty}</td></tr>
-                                                 <tr><td className="p-3 border-r-2 bg-white">DELIVERY TIME</td><td className="p-3 bg-white">{printingCard.deliveryTime}</td></tr>
-                                             </tbody>
-                                         </table>
-                                    </div>
+                                </div>
+                                <div className="w-full border-t-2 border-black font-black text-lg uppercase text-center p-3 bg-gray-100">
+                                    {printingCard.title}
                                 </div>
                             </div>
 
@@ -2166,29 +2157,30 @@
                             </div>
 
                             {/* PART 2: FRONT CARD */}
-                            <div className="w-full flex flex-col avoid-break border-b-2 border-black">
+                            <div className="w-full flex flex-col avoid-break border-2 border-black mt-4">
                                 <div className="w-full border-b-2 border-black font-black text-sm uppercase text-center p-2" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
-                                    EXAMPLE KANBAN : {printingCard.title}
+                                    KANBAN CARD
                                 </div>
                                 <div className="flex w-full">
                                     <div className="w-1/3 border-r-2 border-black flex flex-col p-3 items-center justify-center">
                                          <div className="w-full h-32 flex justify-center items-center">
                                              {printingCard.photo ? <img src={printingCard.photo} className="max-h-full max-w-full object-contain" /> : <div className="text-gray-400 font-bold text-xs uppercase text-center">No Image</div>}
                                          </div>
-                                         <div className="w-full mt-3 border-2 border-black p-1 text-center font-black text-[10px] uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
+                                    </div>
+                                    <div className="w-2/3 flex flex-col">
+                                         <table className="w-full text-sm font-black border-collapse flex-1">
+                                             <tbody>
+                                                 <tr><td className="border-b-2 border-black p-4 w-1/3 bg-white">SUPPLIER P/NO.</td><td className="border-l-2 border-b-2 border-black p-4 bg-white text-xl">{printingCard.supplierPartNo}</td></tr>
+                                                 <tr><td className="border-b-2 border-black p-4 bg-white">SUPPLIER</td><td className="border-l-2 border-b-2 border-black p-4 bg-white text-xl">{printingCard.supplier}</td></tr>
+                                             </tbody>
+                                         </table>
+                                         <div className="w-full p-2 text-center font-black text-xs uppercase" style={{ backgroundColor: printingCard.color || '#d9ead3' }}>
                                              LOCATION: {printingCard.location}
                                          </div>
                                     </div>
-                                    <div className="w-2/3">
-                                         <table className="w-full text-xs font-black border-collapse h-full">
-                                             <tbody>
-                                                 <tr><td className="border-b-2 border-black p-4 w-1/3 border-r-2 bg-white">SUPPLIER P/NO.</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplierPartNo}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-4 border-r-2 bg-white">SUPPLIER</td><td className="border-b-2 border-black p-4 bg-white text-lg">{printingCard.supplier}</td></tr>
-                                                 <tr><td className="border-b-2 border-black p-4 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-4 bg-[#fff2cc] text-red-600 text-2xl">{printingCard.orderQty}</td></tr>
-                                                 <tr><td className="p-4 border-r-2 bg-white">DELIVERY TIME</td><td className="p-4 bg-white text-lg">{printingCard.deliveryTime}</td></tr>
-                                             </tbody>
-                                         </table>
-                                    </div>
+                                </div>
+                                <div className="w-full border-t-2 border-black font-black text-xl uppercase text-center p-4 bg-gray-100">
+                                    {printingCard.title}
                                 </div>
                             </div>
 
@@ -2198,7 +2190,7 @@
                             </div>
 
                             {/* PART 3: BACK CARD (PULLED) */}
-                            <div className="w-full flex avoid-break border-b-2 border-black">
+                            <div className="w-full flex avoid-break border-2 border-black border-t-0">
                                 <div className="w-1/2 border-r-2 border-black flex flex-col items-center justify-center p-8 bg-white">
                                      <h2 className="text-5xl font-black text-red-600 uppercase tracking-widest mb-2">PULLED</h2>
                                      <h2 className="text-3xl font-black text-red-600 uppercase tracking-widest">KANBAN</h2>
@@ -2206,24 +2198,24 @@
                                 <div className="w-1/2 flex flex-col bg-white">
                                      <table className="w-full text-sm font-black border-b-2 border-black">
                                          <tbody>
-                                             <tr><td className="border-b-2 border-black p-5 w-1/2 bg-[#fff2cc] border-r-2">ORDER QTY</td><td className="border-b-2 border-black p-5 bg-[#fff2cc] text-red-600 text-2xl text-center">{printingCard.orderQty}</td></tr>
-                                             <tr><td className="p-5 border-r-2 bg-white">DELIVERY TIME</td><td className="p-5 bg-white text-lg text-center">{printingCard.deliveryTime}</td></tr>
+                                             <tr><td className="border-b-2 border-black p-5 w-1/2 bg-[#fff2cc]">ORDER QTY</td><td className="border-l-2 border-b-2 border-black p-5 bg-[#fff2cc] text-red-600 text-3xl text-center">{printingCard.orderQty}</td></tr>
+                                             <tr><td className="p-5 bg-white">DELIVERY TIME</td><td className="border-l-2 border-black p-5 bg-white text-xl text-center">{printingCard.deliveryTime}</td></tr>
                                          </tbody>
                                      </table>
                                      <div className="p-4 text-xs font-black uppercase bg-gray-50 flex-1 flex flex-col justify-center">
-                                         <span className="text-gray-500 mb-1">CONTACT DETAILS / NOTES:</span>
+                                         <span className="text-gray-500 mb-1">CONTACT / NOTES:</span>
                                          <span className="text-sm">{printingCard.contactDetails || 'NA'}</span>
                                      </div>
                                 </div>
                             </div>
 
                             {/* CUT LINE */}
-                            <div className="w-full border-b-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold">
+                            <div className="w-full border-b-2 border-black border-dashed flex justify-between items-center px-6 py-2 bg-gray-50 text-[10px] font-bold mt-4">
                                 <span>✂️ CUT</span><span>✂️ CUT</span>
                             </div>
 
                             {/* PART 4: QR CODE REORDER */}
-                            <div className="w-full flex avoid-break bg-white">
+                            <div className="w-full flex avoid-break border-2 border-black mt-4 bg-white">
                                 <div className="w-1/2 border-r-2 border-black p-8 flex flex-col justify-center" style={{ backgroundColor: printingCard.color || '#c2f0b9' }}>
                                     <h3 className="font-black uppercase text-3xl mb-2">{printingCard.title}</h3>
                                     <p className="text-lg font-bold uppercase mb-1">Supplier: {printingCard.supplier}</p>
